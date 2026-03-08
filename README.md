@@ -141,6 +141,24 @@ To recall why a decision was made, the AI doesn't scan 40 pages. It:
 
 ---
 
+## The Dashboard
+
+Run `./update-visualizer.sh` once (or `./engram-watch.sh --daemon` to keep it live) and open `VISUALIZER.html` in any browser. No server. No internet required.
+
+**Overview** — sessions, decisions, workstreams, and agents at a glance:
+
+![Engram dashboard — Overview tab](docs/screenshot-overview.png)
+
+**Session Timeline** — every session dated, tagged by mode and agent, with a preview of the opening message. Click any session to jump to its verbatim log:
+
+![Engram dashboard — Session Timeline](docs/screenshot-timeline.png)
+
+**Full Log** — searchable, verbatim turn-by-turn dialog from `ENGRAM-LOG.md`. Click any bubble to copy the exact text to your clipboard:
+
+![Engram dashboard — Full Log](docs/screenshot-fulllog.png)
+
+---
+
 ## Quick Commands
 
 Say these in any session:
