@@ -1,0 +1,24 @@
+# Brainstorm Architecture — .gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Large media (uncomment if needed)
+# *.mp4
+# *.mov
+# *.wav
+
+# Temporary files
+*.tmp
+*.bak
+
+# Optional: Ignore archived logs if they're too large for your repo
+# ENGRAM-LOG-*.md

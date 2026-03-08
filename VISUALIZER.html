@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="30">
+    <title>Engram — <!-- BEGIN_ENGRAM_TITLE -->
+Smart Home Energy Dashboard
+<!-- END_ENGRAM_TITLE --></title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #232635;
+            --border: #2e3247;
+            --accent: #7c6af7;
+            --accent2: #5eead4;
+            --text: #e2e4f0;
+            --muted: #7b80a0;
+            --green: #34d399;
+            --amber: #fbbf24;
+            --red: #f87171;
+            --radius: 10px;
+            --nav-w: 220px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html,
+        body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: var(--nav-w);
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 24px 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            padding: 0 20px 24px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .logo-mark {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .logo-name {
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: -0.3px;
+        }
+
+        .nav-group {
+            margin-bottom: 4px;
+        }
+
+        .nav-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 12px 20px 4px;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 8px 20px;
+            color: var(--muted);
+            font-size: 13.5px;
+            cursor: pointer;
+            border-left: 2px solid transparent;
+            transition: all 0.15s;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            color: var(--text);
+            background: var(--surface2);
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+            border-left-color: var(--accent);
+            background: rgba(124, 106, 247, 0.08);
+            font-weight: 500;
+        }
+
+        /* Main */
+        .main {
+            flex: 1;
+            padding: 32px 40px;
+            max-width: 960px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page-header {
+            margin-bottom: 28px;
+        }
+
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+        }
+
+        .page-sub {
+            color: var(--muted);
+            font-size: 13.5px;
+            margin-top: 4px;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+        }
+
+        .stat-num {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-top: 2px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 14px;
+        }
+
+        .card-head {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .card-id {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .card-body {
+            font-size: 13.5px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .card-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            border: 1px solid;
+        }
+
+        .tag-purple {
+            color: var(--accent);
+            border-color: rgba(124, 106, 247, 0.35);
+            background: rgba(124, 106, 247, 0.1);
+        }
+
+        .tag-teal {
+            color: var(--accent2);
+            border-color: rgba(94, 234, 212, 0.35);
+            background: rgba(94, 234, 212, 0.08);
+        }
+
+        .tag-green {
+            color: var(--green);
+            border-color: rgba(52, 211, 153, 0.35);
+            background: rgba(52, 211, 153, 0.08);
+        }
+
+        .tag-amber {
+            color: var(--amber);
+            border-color: rgba(251, 191, 36, 0.35);
+            background: rgba(251, 191, 36, 0.08);
+        }
+
+        .tag-red {
+            color: var(--red);
+            border-color: rgba(248, 113, 113, 0.35);
+            background: rgba(248, 113, 113, 0.08);
+        }
+
+        .tag-muted {
+            color: var(--muted);
+            border-color: var(--border);
+            background: var(--surface2);
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 24px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .tl-item {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        .tl-dot {
+            position: absolute;
+            left: -28px;
+            top: 14px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--surface2);
+            border: 2px solid var(--border);
+        }
+
+        .tl-dot.brainstorm {
+            border-color: var(--accent);
+            background: rgba(124, 106, 247, 0.3);
+        }
+
+        .tl-dot.implementation {
+            border-color: var(--accent2);
+            background: rgba(94, 234, 212, 0.3);
+        }
+
+        .tl-dot.review {
+            border-color: var(--amber);
+            background: rgba(251, 191, 36, 0.3);
+        }
+
+        .tl-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+
+        .tl-num {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .tl-date {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .tl-summary {
+            font-size: 13.5px;
+            color: var(--muted);
+        }
+
+        .tl-clickable {
+            cursor: pointer;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            border: 1px solid transparent;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .tl-clickable:hover {
+            border-color: var(--border);
+            background: var(--surface);
+        }
+
+        .tl-clickable:hover .tl-link {
+            opacity: 1;
+        }
+
+        .tl-link {
+            font-size: 11px;
+            color: var(--accent);
+            margin-left: auto;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        /* Agent grid */
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 14px;
+        }
+
+        .agent-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+
+        .agent-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+
+        .agent-name {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .agent-role {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        /* Detail rows */
+        .detail-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        .detail-label {
+            color: var(--muted);
+            min-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .detail-val {
+            color: var(--text);
+        }
+
+        /* Empty state */
+        .empty {
+            text-align: center;
+            padding: 48px;
+            color: var(--muted);
+        }
+
+        .empty-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+        }
+
+        .empty-text {
+            font-size: 14px;
+        }
+
+        /* Artifacts table */
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.1s;
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: var(--surface2);
+        }
+
+        /* Log / dialog turns */
+        .log-search-wrap {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .log-search {
+            width: 100%;
+            padding: 10px 16px 10px 38px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-size: 13.5px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .log-search:focus {
+            border-color: var(--accent);
+        }
+
+        .log-search::placeholder {
+            color: var(--muted);
+        }
+
+        .log-search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .log-count {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 16px;
+        }
+
+        .session-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 14px;
+            overflow: hidden;
+            scroll-margin-top: 20px;
+            transition: outline 0.2s;
+        }
+
+        .session-block[hidden] {
+            display: none;
+        }
+
+        .session-summary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 14px 18px;
+            cursor: pointer;
+            list-style: none;
+            font-size: 13px;
+            border-bottom: 1px solid transparent;
+            transition: background 0.1s;
+        }
+
+        .session-summary:hover {
+            background: var(--surface2);
+        }
+
+        details[open]>.session-summary {
+            border-bottom-color: var(--border);
+        }
+
+        .session-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .turn-count {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .session-turns {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .turn {
+            border-radius: 8px;
+            padding: 12px 16px;
+            max-width: 92%;
+        }
+
+        .turn-human {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            align-self: flex-start;
+        }
+
+        .turn-ai {
+            background: rgba(124, 106, 247, 0.07);
+            border: 1px solid rgba(124, 106, 247, 0.2);
+            align-self: flex-end;
+        }
+
+        .turn-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        .turn-speaker-human {
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .turn-speaker-ai {
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .turn-ts {
+            color: var(--muted);
+        }
+
+        .turn-body {
+            font-size: 13.5px;
+            color: var(--text);
+            line-height: 1.65;
+        }
+
+        .turn-body p {
+            margin-bottom: 8px;
+        }
+
+        .turn-body p:last-child {
+            margin-bottom: 0;
+        }
+
+        .turn-body code {
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+        }
+
+        .turn-body strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .turn.hidden {
+            display: none;
+        }
+
+        /* Copy button */
+        .copy-btn {
+            margin-left: auto;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 600;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s;
+            letter-spacing: 0.3px;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .copy-btn.copied {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        @media (max-width: 700px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main {
+                padding: 20px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .turn {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+
+        <nav class="sidebar">
+            <div class="logo">
+                <div class="logo-mark">
+                    <div class="logo-icon">⚡</div>
+                    <span class="logo-name">Engram</span>
+                </div>
+                <!-- BEGIN_ENGRAM_PROJECT_NAME -->
+<div class="logo-sub">Smart Home Energy Dashboard</div>
+<!-- END_ENGRAM_PROJECT_NAME -->
+            </div>
+            <div class="nav-group">
+                <div class="nav-label">Project</div>
+                <a class="nav-item" data-page="overview" href="#">Overview</a>
+                <a class="nav-item" data-page="timeline" href="#">Timeline</a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-label">Core</div>
+                <a class="nav-item" data-page="decisions" href="#">Decisions</a>
+                <a class="nav-item" data-page="workstreams" href="#">Workstreams</a>
+                <a class="nav-item" data-page="agents" href="#">Agents</a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-label">Status</div>
+                <a class="nav-item" data-page="open-items" href="#">Open Items</a>
+                <a class="nav-item" data-page="artifacts" href="#">Artifacts</a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-label">Memory</div>
+                <a class="nav-item" data-page="log" href="#">Full Log</a>
+            </div>
+        </nav>
+
+        <main class="main">
+
+            <section id="overview" class="page">
+                <div class="page-header">
+                    <div class="page-title"><!-- BEGIN_ENGRAM_TITLE -->
+Smart Home Energy Dashboard
+<!-- END_ENGRAM_TITLE --></div>
+                    <div class="page-sub">Last updated:
+                        <!-- BEGIN_ENGRAM_LAST_UPDATED -->
+Mar 07, 2026 at 11:38 UTC
+<!-- END_ENGRAM_LAST_UPDATED --></div>
+                </div>
+                <!-- BEGIN_ENGRAM_STATS -->
+<div class="stats">
+  <div class="stat"><div class="stat-num">6</div><div class="stat-label">Sessions</div></div>
+  <div class="stat"><div class="stat-num">9</div><div class="stat-label">Decisions</div></div>
+  <div class="stat"><div class="stat-num">5</div><div class="stat-label">Workstreams</div></div>
+  <div class="stat"><div class="stat-num">2</div><div class="stat-label">AI Agents</div></div>
+</div>
+<!-- END_ENGRAM_STATS -->
+            </section>
+
+            <section id="timeline" class="page">
+                <div class="page-header">
+                    <div class="page-title">Session Timeline</div>
+                    <div class="page-sub">Click any session to jump to its full verbatim log</div>
+                </div>
+                <div class="timeline">
+                    <!-- BEGIN_ENGRAM_TIMELINE -->
+<div class="tl-item tl-clickable" data-session="1" role="button" tabindex="0">
+  <div class="tl-dot brainstorm"></div>
+  <div class="tl-head">
+    <span class="tl-num">Session 1</span>
+    <span class="tl-date">2026-01-15</span>
+    <span class="tag tag-purple">brainstorm</span>
+    <span class="tag tag-purple">Claude</span>
+    <span class="tl-link">View log →</span>
+  </div>
+  <div class="tl-summary">Data layer: Your Emporia Vue 2 has a local API if you flash the community firmware. That gives you 1-second granularity </div>
+</div>
+<div class="tl-item tl-clickable" data-session="2" role="button" tabindex="0">
+  <div class="tl-dot brainstorm"></div>
+  <div class="tl-head">
+    <span class="tl-num">Session 2</span>
+    <span class="tl-date">2026-01-18</span>
+    <span class="tag tag-purple">brainstorm</span>
+    <span class="tag tag-purple">Claude</span>
+    <span class="tl-link">View log →</span>
+  </div>
+  <div class="tl-summary">Good question. The Emporia Vue 2 CT clamps clip around the mains wires inside your breaker panel — they don't require an</div>
+</div>
+<div class="tl-item tl-clickable" data-session="5" role="button" tabindex="0">
+  <div class="tl-dot admin"></div>
+  <div class="tl-head">
+    <span class="tl-num">Session 5</span>
+    <span class="tl-date">2026-01-28</span>
+    <span class="tag tag-muted">admin</span>
+    <span class="tag tag-purple">Claude</span>
+    <span class="tl-link">View log →</span>
+  </div>
+  <div class="tl-summary">Reading ENGRAM-LOG.md sessions 1 through 5...</div>
+</div>
+<div class="tl-item tl-clickable" data-session="6" role="button" tabindex="0">
+  <div class="tl-dot brainstorm"></div>
+  <div class="tl-head">
+    <span class="tl-num">Session 6</span>
+    <span class="tl-date">2026-01-30</span>
+    <span class="tag tag-purple">brainstorm</span>
+    <span class="tag tag-purple">Claude</span>
+    <span class="tl-link">View log →</span>
+  </div>
+  <div class="tl-summary">This is a classic pragmatism-vs-flexibility tradeoff. Let me lay out the options honestly:</div>
+</div>
+<div class="tl-item tl-clickable" data-session="9" role="button" tabindex="0">
+  <div class="tl-dot brainstorm"></div>
+  <div class="tl-head">
+    <span class="tl-num">Session 9</span>
+    <span class="tl-date">2026-02-10</span>
+    <span class="tag tag-purple">brainstorm</span>
+    <span class="tag tag-purple">Claude</span>
+    <span class="tl-link">View log →</span>
+  </div>
+  <div class="tl-summary">Let me be honest about both approaches:</div>
+</div>
+<div class="tl-item tl-clickable" data-session="10" role="button" tabindex="0">
+  <div class="tl-dot implementation"></div>
+  <div class="tl-head">
+    <span class="tl-num">Session 10</span>
+    <span class="tl-date">2026-02-12</span>
+    <span class="tag tag-teal">implementation</span>
+    <span class="tag tag-purple">Claude</span>
+    <span class="tl-link">View log →</span>
+  </div>
+  <div class="tl-summary">Two types of alerts make sense for your use case:</div>
+</div>
+<!-- END_ENGRAM_TIMELINE -->
+                </div>
+            </section>
+
+            <section id="decisions" class="page">
+                <div class="page-header">
+                    <div class="page-title">Decisions</div>
+                    <div class="page-sub">Key choices made and their rationale</div>
+                </div>
+                <!-- BEGIN_ENGRAM_DECISIONS -->
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#1</span>
+    <span class="card-title">Project Infrastructure</span>
+    <span class="tag tag-green">implemented</span>
+  </div>
+  <div class="card-body">
+    <div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">Eight infrastructure files (CLAUDE.md, AGENTS.md, README.md, STATE.md, ENGRAM-LOG.md, ENGRAM.md, DECISIONS.md, .gitignore) using Engram v3.0.</span></div>
+    <div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val"><ul style="padding-left:16px;margin:0"><li>Wiki-based systems, database-backed tools, plain text without structure</li></ul></span></div>
+    <div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">Preserves brainstorming continuity across devices. Separates raw logs from processed summaries. Enables multi-device operation without context loss. Markdown is portable and AI-readable.</span></div>
+  </div>
+  <div class="card-meta">
+    <span class="tag tag-muted">Session 1</span>
+    <span class="tag tag-muted">2026-01-15</span>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#2</span>
+    <span class="card-title">Tech Stack</span>
+    <span class="tag tag-green">implemented</span>
+  </div>
+  <div class="card-body">
+    <div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">React + TypeScript frontend, Supabase (Postgres + Auth + Realtime) backend, Vercel for deployment.</span></div>
+    <div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val"><ul style="padding-left:16px;margin:0"><li>Next.js + Prisma + self-hosted Postgres — more control but more ops burden</li><li>Vue + Firebase — good DX but vendor lock-in and Firestore pricing unpredictable at scale</li><li>Plain HTML + SQLite — simplest, but no real-time updates or easy auth</li></ul></span></div>
+    <div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">Alex already knows React. Supabase gives Postgres with a generous free tier, built-in auth, and real-time subscriptions (useful for live dashboard updates). Vercel has zero-config React deployment. Total hosting cost: $0 at current scale.</span></div>
+  </div>
+  <div class="card-meta">
+    <span class="tag tag-muted">Session 1</span>
+    <span class="tag tag-muted">2026-01-15</span>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#3</span>
+    <span class="card-title">Smart Meter Hardware</span>
+    <span class="tag tag-green">implemented</span>
+  </div>
+  <div class="card-body">
+    <div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">Emporia Vue 2 with local API access.</span></div>
+    <div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val"><ul style="padding-left:16px;margin:0"><li>Sense monitor — better ML disaggregation but no local API, cloud-only</li><li>IoTaWatt — open-source and local, but requires CT clamp installation (Alex rents, can't modify panel)</li><li>Utility smart meter API — free but only 15-min granularity and 24-hour delay</li></ul></span></div>
+    <div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">Emporia Vue 2 clamps onto existing breakers without modification (renter-friendly), exposes a local API via the community firmware, and provides 1-second granularity. Fallback: utility API for historical data.</span></div>
+  </div>
+  <div class="card-meta">
+    <span class="tag tag-muted">Session 2</span>
+    <span class="tag tag-muted">2026-01-18</span>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#4</span>
+    <span class="card-title">Data Granularity</span>
+    <span class="tag tag-green">implemented</span>
+  </div>
+  <div class="card-body">
+    <div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">Store at 1-minute granularity, display at 15-minute granularity by default with drill-down to 1-minute.</span></div>
+    <div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val"><ul style="padding-left:16px;margin:0"><li>Store everything at 1-second (Emporia's native rate) — ~2.6M rows/month, expensive</li><li>Store at 15-minute only — loses detail for spike detection</li><li>Store 1-second for 7 days, downsample to 1-minute after that</li></ul></span></div>
+    <div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">1-minute gives enough resolution for anomaly detection and spike alerts without overwhelming storage. At ~43K rows/month, well within Supabase free tier. 15-minute display is what utility bills use, so it's familiar.</span></div>
+  </div>
+  <div class="card-meta">
+    <span class="tag tag-muted">Session 3</span>
+    <span class="tag tag-muted">2026-01-22</span>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#5</span>
+    <span class="card-title">Dashboard Charting Library</span>
+    <span class="tag tag-green">implemented</span>
+  </div>
+  <div class="card-body">
+    <div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">Recharts.</span></div>
+    <div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val"><ul style="padding-left:16px;margin:0"><li>Chart.js via react-chartjs-2 — widely used but imperative API feels awkward in React</li><li>D3 — maximum flexibility but massive overkill for time-series line/bar charts</li><li>Nivo — beautiful defaults but heavy bundle size</li><li>Tremor — good for dashboards but opinionated styling conflicts with our Tailwind setup</li></ul></span></div>
+    <div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">Recharts is declarative, React-native, handles responsive layouts well, and the bundle size is reasonable (~45KB gzipped). Good enough for v1. Can swap later if we hit performance limits.</span></div>
+  </div>
+  <div class="card-meta">
+    <span class="tag tag-muted">Session 4</span>
+    <span class="tag tag-muted">2026-01-25</span>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#6</span>
+    <span class="card-title">Time-of-Use Rate Modeling</span>
+    <span class="tag tag-green">implemented</span>
+  </div>
+  <div class="card-body">
+    <div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">Hardcoded rate schedule with manual quarterly updates. Three tiers: off-peak ($0.08/kWh, 9pm-7am), mid-peak ($0.14/kWh, 7am-4pm &amp; 9pm), on-peak ($0.22/kWh, 4pm-9pm weekdays).</span></div>
+    <div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val"><ul style="padding-left:16px;margin:0"><li>Scrape utility website automatically — brittle, TOS concerns</li><li>Use a rate API (OpenEI) — good data but adds external dependency and API key management</li><li>Flat rate approximation — simpler but defeats the purpose of the cost optimization workstream</li></ul></span></div>
+    <div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">Alex's utility (PG&amp;E) changes rates 1-2 times per year. Manual update takes 5 minutes. Avoids scraping brittleness and API dependencies. Good enough for personal use.</span></div>
+  </div>
+  <div class="card-meta">
+    <span class="tag tag-muted">Session 6</span>
+    <span class="tag tag-muted">2026-01-30</span>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#7</span>
+    <span class="card-title">Authentication Model</span>
+    <span class="tag tag-green">implemented</span>
+  </div>
+  <div class="card-body">
+    <div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">Yes, Supabase Auth with magic link (email-based, no password).</span></div>
+    <div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val"><ul style="padding-left:16px;margin:0"><li>No auth — simplest, but anyone with the URL sees Alex's energy data</li><li>Basic password — works but password management is a hassle</li><li>OAuth (Google) — easy but unnecessarily exposes Google account data</li></ul></span></div>
+    <div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">Magic link is zero-friction (no password to remember), secure enough for a personal dashboard, and Supabase Auth handles it with 3 lines of code. If Alex later shares with household members, they just need an email.</span></div>
+  </div>
+  <div class="card-meta">
+    <span class="tag tag-muted">Session 7</span>
+    <span class="tag tag-muted">2026-02-03</span>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#8</span>
+    <span class="card-title">Appliance-Level Data Method</span>
+    <span class="tag tag-green">implemented</span>
+  </div>
+  <div class="card-body">
+    <div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">Smart plugs (TP-Link Kasa KP125) on major appliances, not ML-based disaggregation.</span></div>
+    <div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val"><ul style="padding-left:16px;margin:0"><li>ML disaggregation from whole-home data (like Sense does) — no hardware cost but accuracy is 60-75% for individual appliances, and training requires weeks of data</li><li>Circuit-level monitoring (additional Emporia CTs) — accurate but requires electrician for panel access (renter)</li><li>Smart plugs — $12 each, instant setup, 99%+ accuracy for plugged-in appliances</li></ul></span></div>
+    <div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">Smart plugs give ground-truth data for the appliances that matter most (HVAC, water heater, EV charger, washer/dryer). ML disaggregation can be a v2 enhancement to catch smaller loads. Pragmatism over elegance for v1.</span></div>
+  </div>
+  <div class="card-meta">
+    <span class="tag tag-muted">Session 9</span>
+    <span class="tag tag-muted">2026-02-10</span>
+  </div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#9</span>
+    <span class="card-title">Alert Thresholds</span>
+    <span class="tag tag-green">implemented</span>
+  </div>
+  <div class="card-body">
+    <div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">Two alert types: (1) Spike detection — usage exceeds 2σ from the 7-day rolling average for that time-of-day. (2) Budget overshoot — projected daily cost exceeds 110% of the daily budget target ($4.50/day based on $135/month target).</span></div>
+    <div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val"><ul style="padding-left:16px;margin:0"><li>Fixed thresholds (e.g., &gt;5kW) — too crude, doesn't account for normal variation</li><li>ML anomaly detection — more sophisticated but harder to explain why an alert fired</li><li>Percentage change from yesterday — too noisy (weekday vs. weekend patterns)</li></ul></span></div>
+    <div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">Statistical thresholds (2σ) adapt to Alex's actual usage patterns and are explainable (&quot;your usage is unusually high compared to this time of day over the past week&quot;). Budget overshoot is simple and directly actionable. Both have low false-positive rates in testing.</span></div>
+  </div>
+  <div class="card-meta">
+    <span class="tag tag-muted">Session 10</span>
+    <span class="tag tag-muted">2026-02-12</span>
+  </div>
+</div>
+<!-- END_ENGRAM_DECISIONS -->
+            </section>
+
+            <section id="workstreams" class="page">
+                <div class="page-header">
+                    <div class="page-title">Workstreams</div>
+                    <div class="page-sub">Active project threads from ENGRAM.md</div>
+                </div>
+                <!-- BEGIN_ENGRAM_WORKSTREAMS -->
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#1</span>
+    <span class="card-title">Dashboard UI</span>
+    <span class="tag tag-teal">active</span>
+  </div>
+  <div class="card-body" style="margin-top:8px">React components for visualizing energy usage (daily/weekly/monthly/appliance views)</div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#2</span>
+    <span class="card-title">Data Pipeline</span>
+    <span class="tag tag-teal">active</span>
+  </div>
+  <div class="card-body" style="margin-top:8px">Smart meter ingestion, storage, and transformation</div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#3</span>
+    <span class="card-title">Notification System</span>
+    <span class="tag tag-teal">active</span>
+  </div>
+  <div class="card-body" style="margin-top:8px">Alerts for anomalies, budget overshoots, and optimization tips</div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#4</span>
+    <span class="card-title">Cost Optimization</span>
+    <span class="tag tag-teal">active</span>
+  </div>
+  <div class="card-body" style="margin-top:8px">Time-of-use rate modeling and recommendation engine</div>
+</div>
+<div class="card">
+  <div class="card-head">
+    <span class="card-id">#5</span>
+    <span class="card-title">Infrastructure</span>
+    <span class="tag tag-teal">active</span>
+  </div>
+  <div class="card-body" style="margin-top:8px">Supabase schema, Vercel deployment, CI/CD</div>
+</div>
+<!-- END_ENGRAM_WORKSTREAMS -->
+            </section>
+
+            <section id="agents" class="page">
+                <div class="page-header">
+                    <div class="page-title">AI Agents</div>
+                    <div class="page-sub">Models that have participated in this project</div>
+                </div>
+                <div class="agent-grid">
+                    <!-- BEGIN_ENGRAM_AGENTS -->
+<div class="agent-card">
+  <div class="agent-avatar">C</div>
+  <div class="agent-name">Claude</div>
+  <div class="agent-role">Primary Agent</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+    <span class="tag tag-purple">primary</span>
+    <span class="tag tag-muted">Anthropic</span>
+  </div>
+  <div style="font-size:12px;color:var(--muted)">6 sessions</div>
+</div>
+<div class="agent-card">
+  <div class="agent-avatar">C</div>
+  <div class="agent-name">ChatGPT</div>
+  <div class="agent-role">Code Reviewer</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+    <span class="tag tag-amber">review</span>
+    <span class="tag tag-muted">OpenAI</span> <span class="tag tag-muted">Code Review</span>
+  </div>
+  <div style="font-size:12px;color:var(--muted)">1 session</div>
+</div>
+<!-- END_ENGRAM_AGENTS -->
+                </div>
+            </section>
+
+            <section id="open-items" class="page">
+                <div class="page-header">
+                    <div class="page-title">Open Items</div>
+                    <div class="page-sub">Problems, tasks, and open questions from ENGRAM.md</div>
+                </div>
+                <!-- BEGIN_ENGRAM_OPEN_ITEMS -->
+<h3 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Problems</h3><div class="card" style="margin-bottom:10px"><div class="card-head"><span class="tag tag-red">P0</span><span class="card-title" style="font-size:14px">Email notification CSS renders poorly in Gmail — inline styles needed (blocks Fr</span></div></div><div class="card" style="margin-bottom:10px"><div class="card-head"><span class="tag tag-amber">P1</span><span class="card-title" style="font-size:14px">Recommendation engine needs a scoring model: how to weigh cost savings vs. comfo</span></div></div><div class="card" style="margin-bottom:10px"><div class="card-head"><span class="tag tag-amber">P1</span><span class="card-title" style="font-size:14px">Historical data backfill: utility API only exposes 90 days. Year-over-year compa</span></div></div><div class="card" style="margin-bottom:10px"><div class="card-head"><span class="tag tag-purple">P2</span><span class="card-title" style="font-size:14px">Dashboard load time is ~2.3s on mobile. Acceptable for now but needs optimizatio</span></div></div><div class="card" style="margin-bottom:10px"><div class="card-head"><span class="tag tag-purple">P2</span><span class="card-title" style="font-size:14px">Appliance disaggregation accuracy with smart plugs is ~85%. Some phantom loads (</span></div></div>
+<h3 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 12px">Tasks</h3><div class="card" style="padding:0 16px"><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>Fix email notification CSS — switch to inline styles for Gmail compatibility</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>Add &quot;this month vs. last month&quot; comparison view to dashboard</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>Design recommendation engine scoring model (brainstorm session needed)</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>Implement recommendation engine v1 — start with low-hanging fruit (e.g., &quot;your HVAC ran 3 hours longer than similar homes this week&quot;)</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>Add export-to-PDF for monthly reports (Alex wants to share with landlord)</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>SMS notification channel (blocked on Twilio pricing decision)</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>Historical data backfill (blocked on utility data request)</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>Dashboard performance optimization for mobile</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>Dark mode for dashboard (Alex preference, low priority)</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--accent)">☐</span><span>Public sharing mode — read-only dashboard link for household members</span></div></div>
+<h3 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 12px">Questions</h3><div class="card" style="padding:0 16px"><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--muted)">1.</span><span>Twilio SMS pricing: Is $0.0075/message worth it for a personal project that might send 5-10 alerts/week? Or just stick with email + push?</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--muted)">2.</span><span>Recommendation engine scope: Should v1 recommend behavioral changes only (e.g., &quot;shift laundry to off-peak&quot;) or also hardware upgrades (e.g., &quot;a smart thermostat would save $X/month&quot;)?</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--muted)">3.</span><span>Data sharing: If Alex shares the dashboard with household members, should they see cost data or just usage data? Privacy implications.</span></div><div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px"><span style="color:var(--muted)">4.</span><span>Utility rate changes: Current TOU rates are hardcoded from the utility website. Should we build a scraper, or just manual update quarterly?</span></div></div>
+<!-- END_ENGRAM_OPEN_ITEMS -->
+            </section>
+
+            <section id="artifacts" class="page">
+                <div class="page-header">
+                    <div class="page-title">Artifacts</div>
+                    <div class="page-sub">Files created during sessions — scanned from the project directory</div>
+                </div>
+                <!-- BEGIN_ENGRAM_ARTIFACTS -->
+<div class="empty"><div class="empty-icon">📂</div><div class="empty-text">No artifacts found yet. Files you create during sessions will appear here.</div></div>
+<!-- END_ENGRAM_ARTIFACTS -->
+            </section>
+
+            <section id="log" class="page">
+                <div class="page-header">
+                    <div class="page-title">Full Log</div>
+                    <div class="page-sub">Verbatim, turn-by-turn session dialog from ENGRAM-LOG.md</div>
+                </div>
+                <div class="log-search-wrap">
+                    <span class="log-search-icon">🔍</span>
+                    <input class="log-search" id="log-search" type="text" placeholder="Search dialog…"
+                        autocomplete="off">
+                </div>
+                <div class="log-count" id="log-count"></div>
+                <div id="log-content">
+                    <!-- BEGIN_ENGRAM_LOG -->
+<details class="session-block" id="session-1" open>
+  <summary class="session-summary">
+    <span class="tl-num">Session 1</span>
+    <span class="tl-date">2026-01-15</span>
+    <span class="tag tag-purple">brainstorm</span>
+    <span class="turn-count">5 turns</span>
+  </summary>
+  <div class="session-turns">
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">14:20 UTC</span>
+    <button class="copy-btn" data-copy="I want to build a personal energy dashboard for my apartment. I have a smart meter (Emporia Vue 2) and I'm tired of not knowing where my electricity goes. I want to see daily/weekly/monthly usage, get alerts when something spikes, and eventually get recommendations for saving money. I know React and TypeScript pretty well. What's the best way to architect this?" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>I want to build a personal energy dashboard for my apartment. I have a smart meter (Emporia Vue 2) and I'm tired of not knowing where my electricity goes. I want to see daily/weekly/monthly usage, get alerts when something spikes, and eventually get recommendations for saving money. I know React and TypeScript pretty well. What's the best way to architect this?</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">14:20 UTC</span>
+    <button class="copy-btn" data-copy="Great project — this is the kind of thing where having real data makes the design much clearer. Let me break down the architecture options.&#10;&#10;**Data layer:** Your Emporia Vue 2 has a local API if you flash the community firmware. That gives you 1-second granularity without cloud dependency. For storage, you have a few options...&#10;&#10;[Full response continued with detailed architecture comparison: Supabase vs. self-hosted Postgres vs. Firebase vs. SQLite. Recommended Supabase for the free tier, built-in auth, and real-time subscriptions. Discussed data granularity tradeoffs: 1-second vs. 1-minute vs. 15-minute storage. Proposed React + Recharts for the frontend, Vercel for deployment.]&#10;&#10;**My recommendation for v1:** React + TypeScript + Supabase + Vercel. Store at 1-minute granularity, display at 15-minute. This keeps you in the free tier for everything and gives you real-time capability when you want it.&#10;&#10;Want to discuss the data model next, or should we settle the hardware questions first?" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Great project — this is the kind of thing where having real data makes the design much clearer. Let me break down the architecture options.</p><p><strong>Data layer:</strong> Your Emporia Vue 2 has a local API if you flash the community firmware. That gives you 1-second granularity without cloud dependency. For storage, you have a few options...</p><p>[Full response continued with detailed architecture comparison: Supabase vs. self-hosted Postgres vs. Firebase vs. SQLite. Recommended Supabase for the free tier, built-in auth, and real-time subscriptions. Discussed data granularity tradeoffs: 1-second vs. 1-minute vs. 15-minute storage. Proposed React + Recharts for the frontend, Vercel for deployment.]</p><p><strong>My recommendation for v1:</strong> React + TypeScript + Supabase + Vercel. Store at 1-minute granularity, display at 15-minute. This keeps you in the free tier for everything and gives you real-time capability when you want it.</p><p>Want to discuss the data model next, or should we settle the hardware questions first?</p></div>
+</div>
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">14:35 UTC</span>
+    <button class="copy-btn" data-copy="Let's settle on the tech stack. I like the Supabase idea — I've used Firebase before and hated the pricing surprises. One question: should I use Next.js or plain React (Vite)?" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Let's settle on the tech stack. I like the Supabase idea — I've used Firebase before and hated the pricing surprises. One question: should I use Next.js or plain React (Vite)?</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">14:35 UTC</span>
+    <button class="copy-btn" data-copy="For this project, I'd go with plain React via Vite rather than Next.js. Here's why:&#10;&#10;Your dashboard is a single-page app. There's no SEO requirement (it's a personal tool behind auth), no server-side rendering needed, and no complex routing. Next.js adds a build system, server component model, and deployment constraints that you don't need.&#10;&#10;Vite gives you: instant HMR, fast builds, zero config for React+TS, and deploys anywhere (Vercel included). You keep full control without the Next.js abstraction layer.&#10;&#10;The one counterargument: if you later want API routes (e.g., a cron job that polls the Emporia API), Next.js makes that easy. But Supabase Edge Functions or a simple Vercel serverless function handles that case just fine.&#10;&#10;**Decision proposal:** React + Vite + TypeScript. Supabase for backend. Vercel for hosting." title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>For this project, I'd go with plain React via Vite rather than Next.js. Here's why:</p><p>Your dashboard is a single-page app. There's no SEO requirement (it's a personal tool behind auth), no server-side rendering needed, and no complex routing. Next.js adds a build system, server component model, and deployment constraints that you don't need.</p><p>Vite gives you: instant HMR, fast builds, zero config for React+TS, and deploys anywhere (Vercel included). You keep full control without the Next.js abstraction layer.</p><p>The one counterargument: if you later want API routes (e.g., a cron job that polls the Emporia API), Next.js makes that easy. But Supabase Edge Functions or a simple Vercel serverless function handles that case just fine.</p><p><strong>Decision proposal:</strong> React + Vite + TypeScript. Supabase for backend. Vercel for hosting.</p></div>
+</div>
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">14:42 UTC</span>
+    <button class="copy-btn" data-copy="Agreed. Let's go with that. Log it as a decision. checkpoint&#10;&#10;---" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Agreed. Let's go with that. Log it as a decision. checkpoint</p><p>---</p></div>
+</div>
+  </div>
+</details>
+<details class="session-block" id="session-2" open>
+  <summary class="session-summary">
+    <span class="tl-num">Session 2</span>
+    <span class="tl-date">2026-01-18</span>
+    <span class="tag tag-purple">brainstorm</span>
+    <span class="turn-count">2 turns</span>
+  </summary>
+  <div class="session-turns">
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">10:15 UTC</span>
+    <button class="copy-btn" data-copy="I've been looking at smart meter options more carefully. The Emporia Vue 2 needs CT clamps on the breaker panel. I rent — can I install this without modifying anything? Also looked at the Sense monitor as an alternative." title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>I've been looking at smart meter options more carefully. The Emporia Vue 2 needs CT clamps on the breaker panel. I rent — can I install this without modifying anything? Also looked at the Sense monitor as an alternative.</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">10:15 UTC</span>
+    <button class="copy-btn" data-copy="Good question. The Emporia Vue 2 CT clamps clip around the mains wires inside your breaker panel — they don't require any permanent modification. You open the panel cover (which renters can do), clip the CTs around the two main feed wires, and close the panel. No drilling, no wire cutting, fully reversible.&#10;&#10;**Emporia Vue 2 vs. Sense comparison:**&#10;&#10;| Feature | Emporia Vue 2 | Sense |&#10;|---------|--------------|-------|&#10;| Installation | CT clamps, clip-on, reversible | CT clamps, clip-on, reversible |&#10;| Local API | Yes (community firmware) | No — cloud only |&#10;| Disaggregation | No (whole-home only) | Yes (ML-based, ~60-75% accuracy) |&#10;| Price | ~$35 | ~$300 |&#10;| Data granularity | 1-second local | 1-second cloud |&#10;| Privacy | Data stays local | Data goes to Sense servers |&#10;&#10;For your use case, I'd go with the Emporia Vue 2. The local API is the killer feature — you own your data, no cloud dependency, and $35 vs. $300 is a massive difference for a personal project. The lack of built-in disaggregation is fine because we can add smart plugs on major appliances later for ground-truth per-device data.&#10;&#10;Sense's ML disaggregation sounds cool but in practice it takes weeks to train and is unreliable for smaller appliances. You'd still want smart plugs for accuracy.&#10;&#10;[... Sessions 3-4 truncated for this example. They covered data model design, Supabase schema creation, and charting library selection (Recharts). See DECISIONS.md entries 4 and 5. ...]&#10;&#10;---" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Good question. The Emporia Vue 2 CT clamps clip around the mains wires inside your breaker panel — they don't require any permanent modification. You open the panel cover (which renters can do), clip the CTs around the two main feed wires, and close the panel. No drilling, no wire cutting, fully reversible.</p><p><strong>Emporia Vue 2 vs. Sense comparison:</strong></p><p>| Feature | Emporia Vue 2 | Sense |<br>|---------|--------------|-------|<br>| Installation | CT clamps, clip-on, reversible | CT clamps, clip-on, reversible |<br>| Local API | Yes (community firmware) | No — cloud only |<br>| Disaggregation | No (whole-home only) | Yes (ML-based, ~60-75% accuracy) |<br>| Price | ~$35 | ~$300 |<br>| Data granularity | 1-second local | 1-second cloud |<br>| Privacy | Data stays local | Data goes to Sense servers |</p><p>For your use case, I'd go with the Emporia Vue 2. The local API is the killer feature — you own your data, no cloud dependency, and $35 vs. $300 is a massive difference for a personal project. The lack of built-in disaggregation is fine because we can add smart plugs on major appliances later for ground-truth per-device data.</p><p>Sense's ML disaggregation sounds cool but in practice it takes weeks to train and is unreliable for smaller appliances. You'd still want smart plugs for accuracy.</p><p>[... Sessions 3-4 truncated for this example. They covered data model design, Supabase schema creation, and charting library selection (Recharts). See DECISIONS.md entries 4 and 5. ...]</p><p>---</p></div>
+</div>
+  </div>
+</details>
+<details class="session-block" id="session-5" open>
+  <summary class="session-summary">
+    <span class="tl-num">Session 5</span>
+    <span class="tl-date">2026-01-28</span>
+    <span class="tag tag-muted">admin</span>
+    <span class="turn-count">2 turns</span>
+  </summary>
+  <div class="session-turns">
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">09:00 UTC</span>
+    <button class="copy-btn" data-copy="reconcile now" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>reconcile now</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">09:00 UTC</span>
+    <button class="copy-btn" data-copy="Starting full reconciliation — rebuilding ENGRAM.md from the complete log.&#10;&#10;Reading ENGRAM-LOG.md sessions 1 through 5...&#10;&#10;**Reconciliation complete.** Here's what changed:&#10;&#10;1. Added &quot;Infrastructure&quot; as a fifth workstream (was implicit, now explicit)&#10;2. Promoted dashboard mobile performance to P2 (was mentioned in session 4 but not tracked)&#10;3. Corrected task list: &quot;set up Supabase schema&quot; was still listed as TODO but was completed in session 3&#10;4. Added 2 open questions that were in the log but missing from the summary (data granularity drill-down UX, and whether to pre-aggregate weekly/monthly data or compute on the fly)&#10;&#10;ENGRAM.md, STATE.md updated. Session 5 complete. Next reconciliation due at session 10.&#10;&#10;---" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Starting full reconciliation — rebuilding ENGRAM.md from the complete log.</p><p>Reading ENGRAM-LOG.md sessions 1 through 5...</p><p><strong>Reconciliation complete.</strong> Here's what changed:</p><p>1. Added "Infrastructure" as a fifth workstream (was implicit, now explicit)<br>2. Promoted dashboard mobile performance to P2 (was mentioned in session 4 but not tracked)<br>3. Corrected task list: "set up Supabase schema" was still listed as TODO but was completed in session 3<br>4. Added 2 open questions that were in the log but missing from the summary (data granularity drill-down UX, and whether to pre-aggregate weekly/monthly data or compute on the fly)</p><p>ENGRAM.md, STATE.md updated. Session 5 complete. Next reconciliation due at session 10.</p><p>---</p></div>
+</div>
+  </div>
+</details>
+<details class="session-block" id="session-6" open>
+  <summary class="session-summary">
+    <span class="tl-num">Session 6</span>
+    <span class="tl-date">2026-01-30</span>
+    <span class="tag tag-purple">brainstorm</span>
+    <span class="turn-count">3 turns</span>
+  </summary>
+  <div class="session-turns">
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">20:10 UTC</span>
+    <button class="copy-btn" data-copy="I need to figure out the cost calculation. My utility (PG&E) has time-of-use pricing with three tiers. How should I model this? I don't want to hardcode rates that change, but I also don't want to over-engineer it." title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>I need to figure out the cost calculation. My utility (PG&amp;E) has time-of-use pricing with three tiers. How should I model this? I don't want to hardcode rates that change, but I also don't want to over-engineer it.</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">20:10 UTC</span>
+    <button class="copy-btn" data-copy="This is a classic pragmatism-vs-flexibility tradeoff. Let me lay out the options honestly:&#10;&#10;**Option A: Hardcoded rate schedule with manual updates.**&#10;You define the three TOU tiers in a config file. When PG&E changes rates (1-2x per year), you spend 5 minutes updating the numbers. Pros: dead simple, no external dependencies, works offline. Cons: manual maintenance.&#10;&#10;**Option B: Rate API (OpenEI USRDB).**&#10;The Open Energy Information utility rate database has PG&E's current rates. You'd query it periodically. Pros: automatic updates. Cons: adds an API dependency, needs error handling for downtime, OpenEI data can lag behind actual rate changes by weeks, and you need an API key.&#10;&#10;**Option C: Web scraper for PG&E's rate page.**&#10;Pros: most current data. Cons: brittle (PG&E redesigns their site, scraper breaks), possible TOS violation, maintenance nightmare.&#10;&#10;**My honest recommendation:** Option A. You're building a personal tool. PG&E changes rates once, maybe twice a year. The 5 minutes of manual update is nothing compared to the engineering and maintenance cost of Options B or C. You can always add the API later if this tool grows beyond personal use.&#10;&#10;For the data model, I'd suggest a `rate_schedules` table in Supabase:&#10;&#10;```sql&#10;create table rate_schedules (&#10;  id uuid primary key default gen_random_uuid(),&#10;  name text not null,           -- e.g., 'PG&E TOU-C'&#10;  effective_date date not null,&#10;  off_peak_rate numeric(6,4),   -- $/kWh&#10;  mid_peak_rate numeric(6,4),&#10;  on_peak_rate numeric(6,4),&#10;  off_peak_hours text,          -- e.g., '21:00-07:00'&#10;  mid_peak_hours text,&#10;  on_peak_hours text,&#10;  created_at timestamptz default now()&#10;);&#10;```&#10;&#10;This way you have a history of rate changes and can retroactively recalculate costs if you discover a rate was wrong." title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>This is a classic pragmatism-vs-flexibility tradeoff. Let me lay out the options honestly:</p><p><strong>Option A: Hardcoded rate schedule with manual updates.</strong><br>You define the three TOU tiers in a config file. When PG&amp;E changes rates (1-2x per year), you spend 5 minutes updating the numbers. Pros: dead simple, no external dependencies, works offline. Cons: manual maintenance.</p><p><strong>Option B: Rate API (OpenEI USRDB).</strong><br>The Open Energy Information utility rate database has PG&amp;E's current rates. You'd query it periodically. Pros: automatic updates. Cons: adds an API dependency, needs error handling for downtime, OpenEI data can lag behind actual rate changes by weeks, and you need an API key.</p><p><strong>Option C: Web scraper for PG&amp;E's rate page.</strong><br>Pros: most current data. Cons: brittle (PG&amp;E redesigns their site, scraper breaks), possible TOS violation, maintenance nightmare.</p><p><strong>My honest recommendation:</strong> Option A. You're building a personal tool. PG&amp;E changes rates once, maybe twice a year. The 5 minutes of manual update is nothing compared to the engineering and maintenance cost of Options B or C. You can always add the API later if this tool grows beyond personal use.</p><p>For the data model, I'd suggest a <code>rate_schedules</code> table in Supabase:</p><p>``<code>sql<br>create table rate_schedules (<br>  id uuid primary key default gen_random_uuid(),<br>  name text not null,           -- e.g., 'PG&amp;E TOU-C'<br>  effective_date date not null,<br>  off_peak_rate numeric(6,4),   -- $/kWh<br>  mid_peak_rate numeric(6,4),<br>  on_peak_rate numeric(6,4),<br>  off_peak_hours text,          -- e.g., '21:00-07:00'<br>  mid_peak_hours text,<br>  on_peak_hours text,<br>  created_at timestamptz default now()<br>);<br></code>``</p><p>This way you have a history of rate changes and can retroactively recalculate costs if you discover a rate was wrong.</p></div>
+</div>
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">20:22 UTC</span>
+    <button class="copy-btn" data-copy="Option A. Definitely. Let's not over-engineer this. Current rates are: off-peak $0.08 (9pm-7am), mid-peak $0.14 (7am-4pm and 9pm), on-peak $0.22 (4pm-9pm weekdays). Log it as a decision. checkpoint&#10;&#10;---&#10;&#10;[... Sessions 7-8 truncated for this example. Session 7 covered authentication (magic link via Supabase Auth). Session 8 covered the initial dashboard UI build — daily, weekly, monthly views with Recharts. See DECISIONS.md entries 7-8. ...]&#10;&#10;---" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Option A. Definitely. Let's not over-engineer this. Current rates are: off-peak $0.08 (9pm-7am), mid-peak $0.14 (7am-4pm and 9pm), on-peak $0.22 (4pm-9pm weekdays). Log it as a decision. checkpoint</p><p>---</p><p>[... Sessions 7-8 truncated for this example. Session 7 covered authentication (magic link via Supabase Auth). Session 8 covered the initial dashboard UI build — daily, weekly, monthly views with Recharts. See DECISIONS.md entries 7-8. ...]</p><p>---</p></div>
+</div>
+  </div>
+</details>
+<details class="session-block" id="session-9" open>
+  <summary class="session-summary">
+    <span class="tl-num">Session 9</span>
+    <span class="tl-date">2026-02-10</span>
+    <span class="tag tag-purple">brainstorm</span>
+    <span class="turn-count">4 turns</span>
+  </summary>
+  <div class="session-turns">
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">16:30 UTC</span>
+    <button class="copy-btn" data-copy="The dashboard is looking good with the daily/weekly/monthly views. But I want to see which appliances are using the most power. Should we do ML-based disaggregation from the whole-home data, or just put smart plugs on the big appliances?" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>The dashboard is looking good with the daily/weekly/monthly views. But I want to see which appliances are using the most power. Should we do ML-based disaggregation from the whole-home data, or just put smart plugs on the big appliances?</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">16:30 UTC</span>
+    <button class="copy-btn" data-copy="Let me be honest about both approaches:&#10;&#10;**ML Disaggregation (like Sense does):**&#10;In theory, you can identify appliances from their electrical signatures in the whole-home data. In practice:&#10;- Requires 2-4 weeks of training data minimum&#10;- Accuracy ranges from 60-85% depending on the appliance&#10;- Small appliances (<100W) are basically invisible&#10;- Similar appliances (two space heaters) are indistinguishable&#10;- Every new appliance requires retraining&#10;- You'd need to implement or adapt NILM (Non-Intrusive Load Monitoring) algorithms — this is a research field, not a weekend project&#10;&#10;**Smart Plugs (TP-Link Kasa KP125):**&#10;- $12 each, takes 30 seconds to set up&#10;- 99%+ accuracy for any plugged-in appliance&#10;- Local API available (no cloud dependency)&#10;- Limitation: can't monitor hardwired appliances (central HVAC, water heater if hardwired, electric oven)&#10;&#10;**My recommendation for v1:** Smart plugs on the 4 big consumers: HVAC (if it plugs in), water heater (if it plugs in), EV charger, and washer/dryer. These probably account for 70-80% of your bill. Everything else is a rounding error at this stage.&#10;&#10;You can always add ML disaggregation as a v2 feature to catch the remaining 20-30%. But for v1, smart plugs give you ground-truth data with zero development effort on the disaggregation side." title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Let me be honest about both approaches:</p><p><strong>ML Disaggregation (like Sense does):</strong><br>In theory, you can identify appliances from their electrical signatures in the whole-home data. In practice:<br>- Requires 2-4 weeks of training data minimum<br>- Accuracy ranges from 60-85% depending on the appliance<br>- Small appliances (&lt;100W) are basically invisible<br>- Similar appliances (two space heaters) are indistinguishable<br>- Every new appliance requires retraining<br>- You'd need to implement or adapt NILM (Non-Intrusive Load Monitoring) algorithms — this is a research field, not a weekend project</p><p><strong>Smart Plugs (TP-Link Kasa KP125):</strong><br>- $12 each, takes 30 seconds to set up<br>- 99%+ accuracy for any plugged-in appliance<br>- Local API available (no cloud dependency)<br>- Limitation: can't monitor hardwired appliances (central HVAC, water heater if hardwired, electric oven)</p><p><strong>My recommendation for v1:</strong> Smart plugs on the 4 big consumers: HVAC (if it plugs in), water heater (if it plugs in), EV charger, and washer/dryer. These probably account for 70-80% of your bill. Everything else is a rounding error at this stage.</p><p>You can always add ML disaggregation as a v2 feature to catch the remaining 20-30%. But for v1, smart plugs give you ground-truth data with zero development effort on the disaggregation side.</p></div>
+</div>
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">16:45 UTC</span>
+    <button class="copy-btn" data-copy="Smart plugs. No question. My HVAC and water heater both plug in (it's a mini-split and a hybrid tank). Let me order 4 KP125s. Can you start on the appliance breakdown view while I do that?" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Smart plugs. No question. My HVAC and water heater both plug in (it's a mini-split and a hybrid tank). Let me order 4 KP125s. Can you start on the appliance breakdown view while I do that?</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">16:45 UTC</span>
+    <button class="copy-btn" data-copy="On it. I'll create the appliance breakdown view component. Decision logged as #8.&#10;&#10;[Created `src/components/ApplianceBreakdown.tsx` — a stacked bar chart showing per-appliance energy usage with color coding. Supports daily and weekly views. Includes a &quot;rest of home&quot; category calculated as total minus known appliances.]&#10;&#10;The component expects data in this shape:&#10;```typescript&#10;interface ApplianceReading {&#10;  timestamp: string;&#10;  appliance: 'hvac' | 'water_heater' | 'ev_charger' | 'washer_dryer' | 'other';&#10;  watts: number;&#10;}&#10;```&#10;&#10;I also created `src/hooks/useApplianceData.ts` that merges the smart plug readings with the whole-home Emporia data and computes the &quot;other&quot; category. checkpoint&#10;&#10;---" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>On it. I'll create the appliance breakdown view component. Decision logged as #8.</p><p>[Created <code>src/components/ApplianceBreakdown.tsx</code> — a stacked bar chart showing per-appliance energy usage with color coding. Supports daily and weekly views. Includes a "rest of home" category calculated as total minus known appliances.]</p><p>The component expects data in this shape:<br>``<code>typescript<br>interface ApplianceReading {<br>  timestamp: string;<br>  appliance: 'hvac' | 'water_heater' | 'ev_charger' | 'washer_dryer' | 'other';<br>  watts: number;<br>}<br></code>`<code></p><p>I also created </code>src/hooks/useApplianceData.ts` that merges the smart plug readings with the whole-home Emporia data and computes the "other" category. checkpoint</p><p>---</p></div>
+</div>
+  </div>
+</details>
+<details class="session-block" id="session-10" open>
+  <summary class="session-summary">
+    <span class="tl-num">Session 10</span>
+    <span class="tl-date">2026-02-12</span>
+    <span class="tag tag-teal">implementation</span>
+    <span class="turn-count">6 turns</span>
+  </summary>
+  <div class="session-turns">
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">18:00 UTC</span>
+    <button class="copy-btn" data-copy="Appliance view is great. Now I want alerts — I should get notified when something weird happens. Like if the HVAC runs all night, or if my bill is tracking way over budget. What's the best approach?" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Appliance view is great. Now I want alerts — I should get notified when something weird happens. Like if the HVAC runs all night, or if my bill is tracking way over budget. What's the best approach?</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">18:00 UTC</span>
+    <button class="copy-btn" data-copy="Two types of alerts make sense for your use case:&#10;&#10;**1. Spike Detection (anomaly alert):**&#10;Compare current usage to a rolling average for the same time-of-day over the past 7 days. If current usage exceeds the mean + 2 standard deviations, fire an alert.&#10;&#10;Why 2σ: it's the standard threshold for &quot;unusual but not rare.&quot; In a normal distribution, ~5% of readings will naturally exceed 2σ, so you'll get maybe 1-2 false positives per day — tolerable for a personal alert.&#10;&#10;**2. Budget Overshoot (cost alert):**&#10;Given your monthly target of $135, your daily budget is ~$4.50. If the projected daily cost (based on usage so far today, extrapolated using your TOU rates) exceeds 110% of the daily budget ($4.95), fire an alert.&#10;&#10;Why 110% not 100%: day-to-day variation is normal. You'll have $3 days and $6 days. Alerting at exactly $4.50 would be noisy. 110% catches the genuinely expensive days without crying wolf.&#10;&#10;For notification channels: push notifications (via web push API) and email. I'd defer SMS for now — Twilio costs $0.0075 per message, and for a personal project that might send 5-10 alerts per week, you'd be paying ~$2-4/month for a feature that push notifications handle for free." title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Two types of alerts make sense for your use case:</p><p><strong>1. Spike Detection (anomaly alert):</strong><br>Compare current usage to a rolling average for the same time-of-day over the past 7 days. If current usage exceeds the mean + 2 standard deviations, fire an alert.</p><p>Why 2σ: it's the standard threshold for "unusual but not rare." In a normal distribution, ~5% of readings will naturally exceed 2σ, so you'll get maybe 1-2 false positives per day — tolerable for a personal alert.</p><p><strong>2. Budget Overshoot (cost alert):</strong><br>Given your monthly target of $135, your daily budget is ~$4.50. If the projected daily cost (based on usage so far today, extrapolated using your TOU rates) exceeds 110% of the daily budget ($4.95), fire an alert.</p><p>Why 110% not 100%: day-to-day variation is normal. You'll have $3 days and $6 days. Alerting at exactly $4.50 would be noisy. 110% catches the genuinely expensive days without crying wolf.</p><p>For notification channels: push notifications (via web push API) and email. I'd defer SMS for now — Twilio costs $0.0075 per message, and for a personal project that might send 5-10 alerts per week, you'd be paying ~$2-4/month for a feature that push notifications handle for free.</p></div>
+</div>
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">18:20 UTC</span>
+    <button class="copy-btn" data-copy="Perfect. Go with 2σ for spikes and 110% for budget. Build it. Defer SMS — we can decide on that later." title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Perfect. Go with 2σ for spikes and 110% for budget. Build it. Defer SMS — we can decide on that later.</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">18:20 UTC</span>
+    <button class="copy-btn" data-copy="Decision logged as #9. Building the notification system now.&#10;&#10;[Created `src/notifications/alerts.ts` — core alert engine with two detectors:&#10;- `SpikeDetector`: computes rolling 7-day stats per time-of-day bucket (1-hour windows), fires when current > mean + 2σ&#10;- `BudgetDetector`: projects daily cost from current consumption + TOU rates, fires when projection > daily_budget * 1.10&#10;&#10;Created `src/notifications/channels.ts` — notification delivery:&#10;- `PushChannel`: Web Push API with service worker registration&#10;- `EmailChannel`: Supabase Edge Function that sends via Resend API&#10;&#10;Created `src/notifications/manager.ts` — orchestrates detection and delivery, deduplicates alerts (max 1 alert per type per hour)]&#10;&#10;Push notifications are working — I tested the service worker registration flow. The email channel is functional but the HTML template renders poorly in Gmail (Gmail strips `<style>` tags, so we need inline CSS). That's a known Gmail limitation.&#10;&#10;Want me to fix the email CSS now, or move on to something else?" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Decision logged as #9. Building the notification system now.</p><p>[Created <code>src/notifications/alerts.ts</code> — core alert engine with two detectors:<br>- <code>SpikeDetector</code>: computes rolling 7-day stats per time-of-day bucket (1-hour windows), fires when current &gt; mean + 2σ<br>- <code>BudgetDetector</code>: projects daily cost from current consumption + TOU rates, fires when projection &gt; daily_budget * 1.10</p><p>Created <code>src/notifications/channels.ts</code> — notification delivery:<br>- <code>PushChannel</code>: Web Push API with service worker registration<br>- <code>EmailChannel</code>: Supabase Edge Function that sends via Resend API</p><p>Created <code>src/notifications/manager.ts</code> — orchestrates detection and delivery, deduplicates alerts (max 1 alert per type per hour)]</p><p>Push notifications are working — I tested the service worker registration flow. The email channel is functional but the HTML template renders poorly in Gmail (Gmail strips <code>&lt;style&gt;</code> tags, so we need inline CSS). That's a known Gmail limitation.</p><p>Want me to fix the email CSS now, or move on to something else?</p></div>
+</div>
+<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">Alex</span>
+    <span class="turn-ts">18:45 UTC</span>
+    <button class="copy-btn" data-copy="Let's leave the email CSS for next time — I need to demo this to my partner on Friday and the push notifications are the important part. Good session. Also, this is session 10, so reconciliation is due right?" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Let's leave the email CSS for next time — I need to demo this to my partner on Friday and the push notifications are the important part. Good session. Also, this is session 10, so reconciliation is due right?</p></div>
+</div>
+<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">Claude</span>
+    <span class="turn-ts">18:45 UTC</span>
+    <button class="copy-btn" data-copy="Yes — reconciliation is due at session 10. Running it now.&#10;&#10;**Reconciliation complete.** ENGRAM.md rebuilt from the full log. Changes from reconciliation:&#10;- Moved &quot;Supabase schema setup&quot; and &quot;Vercel deployment&quot; from tasks to completed (were done in sessions 3-4 but still showing as open)&#10;- Added email CSS fix as P0 (blocking Friday demo)&#10;- Updated workstream status: Dashboard UI at ~85%, Data Pipeline at ~90%, Notifications at ~70%, Cost Optimization at ~40%&#10;- Cleaned up 3 duplicate open questions&#10;&#10;Session 10 complete. Log, summary, and state updated. Next reconciliation at session 15." title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body"><p>Yes — reconciliation is due at session 10. Running it now.</p><p><strong>Reconciliation complete.</strong> ENGRAM.md rebuilt from the full log. Changes from reconciliation:<br>- Moved "Supabase schema setup" and "Vercel deployment" from tasks to completed (were done in sessions 3-4 but still showing as open)<br>- Added email CSS fix as P0 (blocking Friday demo)<br>- Updated workstream status: Dashboard UI at ~85%, Data Pipeline at ~90%, Notifications at ~70%, Cost Optimization at ~40%<br>- Cleaned up 3 duplicate open questions</p><p>Session 10 complete. Log, summary, and state updated. Next reconciliation at session 15.</p></div>
+</div>
+  </div>
+</details>
+<!-- END_ENGRAM_LOG -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // ── Tab persistence via localStorage ─────────────────────────────────────
+        var STORAGE_KEY = 'engram-active-page';
+
+        function showPage(pageId, save) {
+            if (save !== false) localStorage.setItem(STORAGE_KEY, pageId);
+            document.querySelectorAll('.nav-item').forEach(function (l) { l.classList.remove('active'); });
+            document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+            var target = document.getElementById(pageId);
+            if (target) { target.classList.add('active'); } else { pageId = 'overview'; document.getElementById('overview').classList.add('active'); }
+            var link = document.querySelector('.nav-item[data-page="' + pageId + '"]');
+            if (link) link.classList.add('active');
+        }
+
+        // Restore saved tab on load (handles auto-refresh)
+        (function () {
+            var saved = localStorage.getItem(STORAGE_KEY) || 'overview';
+            showPage(saved, false);
+        })();
+
+        document.querySelectorAll('.nav-item').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                showPage(this.dataset.page);
+            });
+        });
+
+        // ── Timeline → Full Log navigation ────────────────────────────────────────
+        document.querySelectorAll('.tl-clickable').forEach(function (item) {
+            function goToSession() {
+                var sid = item.dataset.session;
+                showPage('log');
+                requestAnimationFrame(function () {
+                    var block = document.getElementById('session-' + sid);
+                    if (block) {
+                        block.open = true;
+                        block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        block.style.outline = '2px solid var(--accent)';
+                        setTimeout(function () { block.style.outline = ''; }, 1200);
+                    }
+                });
+            }
+            item.addEventListener('click', goToSession);
+            item.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goToSession(); }
+            });
+        });
+
+        // ── Log search ─────────────────────────────────────────────────────────────
+        var searchInput = document.getElementById('log-search');
+        var logCount = document.getElementById('log-count');
+
+        function updateCount() {
+            var sessions = document.querySelectorAll('#log-content .session-block');
+            var visible = Array.from(sessions).filter(function (s) { return !s.hidden; });
+            var turns = document.querySelectorAll('#log-content .turn:not(.hidden)');
+            if (searchInput && searchInput.value.trim()) {
+                logCount.textContent = turns.length + ' result' + (turns.length !== 1 ? 's' : '') + ' across ' + visible.length + ' session' + (visible.length !== 1 ? 's' : '');
+            } else {
+                logCount.textContent = sessions.length + ' session' + (sessions.length !== 1 ? 's' : '') + ' · ' + document.querySelectorAll('#log-content .turn').length + ' turns';
+            }
+        }
+
+        searchInput && searchInput.addEventListener('input', function () {
+            var q = this.value.trim().toLowerCase();
+            document.querySelectorAll('#log-content .session-block').forEach(function (block) {
+                var turns = block.querySelectorAll('.turn');
+                var anyMatch = false;
+                turns.forEach(function (turn) {
+                    var match = !q || turn.textContent.toLowerCase().includes(q);
+                    turn.classList.toggle('hidden', !match);
+                    if (match) anyMatch = true;
+                });
+                block.hidden = q && !anyMatch;
+                if (q && anyMatch) block.open = true;
+            });
+            updateCount();
+        });
+
+        // ── Click-to-copy ──────────────────────────────────────────────────────────
+        document.querySelectorAll('.copy-btn').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var text = btn.getAttribute('data-copy')
+                    .replace(/&#10;/g, '\n')
+                    .replace(/&quot;/g, '"')
+                    .replace(/&amp;/g, '&')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>');
+                function markCopied() {
+                    btn.textContent = 'Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(markCopied).catch(fallback);
+                } else { fallback(); }
+                function fallback() {
+                    var ta = document.createElement('textarea');
+                    ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+                    document.body.appendChild(ta); ta.select();
+                    try { document.execCommand('copy'); } catch (e) { }
+                    document.body.removeChild(ta);
+                    markCopied();
+                }
+            });
+        });
+
+        updateCount();
+    </script>
+</body>
+
+</html>
