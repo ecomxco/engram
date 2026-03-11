@@ -1,7 +1,7 @@
 # Engram Roadmap
 ## Persistent Memory for AI Conversations
 
-*Last updated: March 3, 2026*
+*Last updated: March 11, 2026*
 
 ---
 
@@ -9,61 +9,69 @@
 
 Engram is a lightweight, file-based system that gives AI conversations persistent memory across sessions, devices, and AI platforms. Built on markdown files and a simple, human-readable protocol—no database, no API, no plugins. Engram remembers what matters: decisions made, problems solved, context accumulated, and patterns learned.
 
-This roadmap outlines seven phases of product evolution, from the current v3.0 release through v4.2 and beyond. Each phase builds capability while maintaining the core principle: **structured markdown files + shared protocol = persistent memory**.
+This roadmap outlines seven phases of product evolution, from the current v4.0 release through v4.2 and beyond. Each phase builds capability while maintaining the core principle: **structured markdown files + shared protocol = persistent memory**.
 
 ---
 
-## Current State (v2.1 → v3.0)
+## Current State (v4.0)
 
 **What Engram is today:**
-- 8 markdown files + 1 bash init script
-- Cross-platform support: Claude, ChatGPT, Gemini, local models
+- 8 markdown files + safe installer with backup/uninstall + interactive dashboard
+- Cross-platform support: Claude, ChatGPT, Gemini, Cursor, Antigravity, local models
 - Core capabilities:
   - Verbatim append-only logging (ENGRAM-LOG.md)
   - Processed summaries (ENGRAM.md)
   - Decision tracking (DECISIONS.md)
   - State management (STATE.md)
   - Multi-agent registry (AGENTS.md)
+  - Interactive browser-based dashboard (VISUALIZER.html)
+  - Background file watcher with auto-regeneration (engram-watch.sh)
+  - 13 workflow definitions in .agents/workflows/
+  - Safe installer: pre-install backup, install manifest, --dry-run, --uninstall, --skip-existing, per-file collision handling, cross-platform sed, NO_COLOR support
 - Designed for solo/small-team use, up to ~50 sessions
 - **Usage model**: AI reads files at session start, updates them as work proceeds
 
 ---
 
-## Phase 1: Foundation (v3.0) — Current Release
+## Phase 1: Foundation (v4.0) — Complete
 
 ### Mission
-Establish Engram's identity and create the visual layer for session replay and context loading.
+Establish Engram's identity, create the visual layer for session replay and context loading, and build a safe, reversible installer.
 
 ### Deliverables
 
-| Item | Description |
-|------|-------------|
-| **Branding** | Rename from "Brainstorm Architecture" to "Engram" across all materials |
-| **HTML Session Visualizer** | Interactive browser-based viewer for session history, decision flow, and state timeline |
-| **File Renames** | BRAINSTORM-LOG.md → ENGRAM-LOG.md, BRAINSTORM.md → ENGRAM.md |
-| **Init Script** | Updated `init-engram.sh` with new naming and optional personalizations |
-| **Documentation** | Getting Started guide, file schema documentation, protocol specification |
+| Item | Status | Description |
+|------|--------|-------------|
+| **Branding** | ✅ | Rename from "Brainstorm Architecture" to "Engram" across all materials |
+| **HTML Session Visualizer** | ✅ | Interactive browser-based dashboard with session timeline, decision log, workstream tracker, agent activity, and open items |
+| **File Renames** | ✅ | BRAINSTORM-LOG.md → ENGRAM-LOG.md, BRAINSTORM.md → ENGRAM.md |
+| **Init Script** | ✅ | Safe installer with backup, uninstall, dry-run, skip-existing, per-file collision handling, cross-platform sed, colored output |
+| **Documentation** | ✅ | README, ROADMAP, CONTRIBUTING, SECURITY, issue templates, protocol specification |
+| **Background Watcher** | ✅ | `engram-watch.sh` — daemon mode, auto-regenerates dashboard on file changes |
+| **Workflow Suite** | ✅ | 13 workflow definitions in `.agents/workflows/` — checkpoint, reconcile, handoff, new-session, and more |
 
 ### Why It Matters
 - Establishes Engram as a distinct product with clear identity
 - Visual session history helps users understand what happened and why
+- Safe installer means existing projects are never at risk
 - Renames align tooling with product brand
 - Lowers onboarding friction for new users
 
 ### Estimated Complexity
-**Medium (M)** — Mostly rename/rebrand work, HTML visualizer is straightforward DOM rendering
+**Medium (M)** — Rename/rebrand, HTML visualizer, safe installer engineering
 
 ### Dependencies
 None (foundation phase)
 
 ### Success Metrics
-- Init script runs cleanly on macOS, Linux, Windows (WSL)
-- Visualizer loads any project and renders session timeline
-- All files properly renamed across repos/docs
+- ✅ Init script runs cleanly on macOS, Linux, Windows (WSL)
+- ✅ Visualizer loads any project and renders session timeline
+- ✅ All files properly renamed across repos/docs
+- ✅ Install into existing project backs up before overwriting, uninstall restores cleanly
 
 ---
 
-## Phase 2: Query & Retrieval Layer (v3.1)
+## Phase 2: Query & Retrieval Layer (v4.1)
 
 ### Mission
 Move Engram from a read-on-startup system to an actively queryable knowledge base with programmatic access.
@@ -143,7 +151,7 @@ engram export [--format json|csv]     # Export project state
 
 ---
 
-## Phase 3: MCP Server (v3.2)
+## Phase 3: MCP Server (v4.2)
 
 ### Mission
 Elevate Engram from a read-at-startup protocol to a live, always-available tool that AIs use to maintain memory **during** conversation.
@@ -168,8 +176,8 @@ Elevate Engram from a read-at-startup protocol to a live, always-available tool 
 | `engram_reconcile` | (none) | Rebuilt ENGRAM.md summary | Rebuild summaries from logs |
 
 #### Protocol Shift
-- **Before (v3.1)**: AI is given instructions like "update STATE.md before ending session"
-- **After (v3.2)**: AI is given tools; protocol enforcement is automatic
+- **Before (v4.1)**: AI is given instructions like "update STATE.md before ending session"
+- **After (v4.2)**: AI is given tools; protocol enforcement is automatic
 
 This is a **critical shift**: the system moves from "trust the AI to follow protocol" to "the protocol is embedded in the available tools."
 
@@ -213,7 +221,7 @@ This is a **critical shift**: the system moves from "trust the AI to follow prot
 
 ---
 
-## Phase 4: Project Templates (v3.3)
+## Phase 4: Project Templates (v4.3)
 
 ### Mission
 Lower time-to-value for different use cases by providing domain-specific project structures.
@@ -301,11 +309,11 @@ WORKSTREAMS:
 - Each template scaffolds in <200ms
 - All templates pass validation (required fields present, schema correct)
 - Documentation for each template includes domain-specific examples
-- Community contributes 2+ new templates by v3.4
+- Community contributes 2+ new templates by v4.4
 
 ---
 
-## Phase 5: Cross-Project Memory (v4.0)
+## Phase 5: Cross-Project Memory (v5.0)
 
 ### Mission
 Create persistent "developer identity" that carries across projects, so Engram becomes a long-term knowledge companion, not just a per-project assistant.
@@ -392,7 +400,7 @@ Lesson: "Spike on unknown tech before committing to project timeline"
 
 ---
 
-## Phase 6: Token-Aware Context Loading (v4.1)
+## Phase 6: Token-Aware Context Loading (v5.1)
 
 ### Mission
 Adapt context to the AI's current token budget, ensuring Engram is useful even when budget is tight (mobile, expensive models) and comprehensive when generous.
@@ -465,7 +473,7 @@ Context items scored by:
 
 ---
 
-## Phase 7: Collaboration & Teams (v4.2)
+## Phase 7: Collaboration & Teams (v5.2)
 
 ### Mission
 Enable small teams to share Engram projects while maintaining individual perspectives and decision velocity.
@@ -541,7 +549,7 @@ Suggestion: Alice's version is newer. Merge and note:
 
 ## Phase 8+: Future Exploration
 
-Beyond v4.2, emerging capabilities to explore:
+Beyond v5.2, emerging capabilities to explore:
 
 ### Real-Time Collaboration (v5.0)
 - CRDT-based sync for simultaneous editing
@@ -578,10 +586,10 @@ Beyond v4.2, emerging capabilities to explore:
 ## Success Criteria Across All Phases
 
 ### User Adoption
-- v3.0: 100+ users in first 2 weeks (signup via GitHub releases)
-- v3.1: 5k+ CLI installs/month by end of phase
-- v3.2: MCP adoption in 3+ Claude Desktop plugins
-- v4.0: 10k+ daily active projects by end of year
+- v4.0: 100+ users in first 2 weeks (signup via GitHub releases)
+- v4.1: 5k+ CLI installs/month by end of phase
+- v4.2: MCP adoption in 3+ Claude Desktop plugins
+- v5.0: 10k+ daily active projects by end of year
 
 ### Product Quality
 - Zero data loss incidents (all file writes atomic)
@@ -590,14 +598,14 @@ Beyond v4.2, emerging capabilities to explore:
 - Documentation: each feature has README + 3+ working examples
 
 ### Community
-- v3.1: Community contributions to CLI (new commands, file formatters)
-- v3.3: 5+ templates contributed by community by v3.4
-- v4.0: Engram used to maintain itself (dogfooding: Engram project uses Engram)
+- v4.1: Community contributions to CLI (new commands, file formatters)
+- v4.3: 5+ templates contributed by community by v4.4
+- v5.0: Engram used to maintain itself (dogfooding: Engram project uses Engram)
 
 ### Reliability
 - 99.5% uptime for any self-hosted instances (file I/O reliability)
 - Graceful degradation: if one feature fails, others continue
-- Backward compatibility: projects created in v3.0 work unchanged in v4.2
+- Backward compatibility: projects created in v4.0 work unchanged in v5.2
 
 ---
 
@@ -653,23 +661,23 @@ project-root/
 ```
 
 ### Backward Compatibility Strategy
-- v3.1+ tools read v3.0 files without modification
-- Migrations run on-demand (`engram migrate --from v3.0`)
+- v4.1+ tools read v4.0 files without modification
+- Migrations run on-demand (`engram migrate --from v4.0`)
 - Old formats stay readable; new formats are default for new files
 
 ---
 
 ## Roadmap Timeline (Estimated)
 
-| Phase | Version | Estimated Duration | Target Launch |
-|-------|---------|-------------------|-----------------|
-| 1. Foundation | v3.0 | 4 weeks | March 2026 |
-| 2. Query & Retrieval | v3.1 | 8 weeks | May 2026 |
-| 3. MCP Server | v3.2 | 6 weeks | June 2026 |
-| 4. Templates | v3.3 | 4 weeks | July 2026 |
-| 5. Cross-Project Memory | v4.0 | 8 weeks | September 2026 |
-| 6. Token-Aware Loading | v4.1 | 6 weeks | October 2026 |
-| 7. Collaboration & Teams | v4.2 | 8 weeks | December 2026 |
+| Phase | Version | Status | Estimated Duration | Target Launch |
+|-------|---------|--------|-------------------|-----------------|
+| 1. Foundation | v4.0 | ✅ Complete | 4 weeks | March 2026 |
+| 2. Query & Retrieval | v4.1 | Planned | 8 weeks | May 2026 |
+| 3. MCP Server | v4.2 | Planned | 6 weeks | June 2026 |
+| 4. Templates | v4.3 | Planned | 4 weeks | July 2026 |
+| 5. Cross-Project Memory | v5.0 | Planned | 8 weeks | September 2026 |
+| 6. Token-Aware Loading | v5.1 | Planned | 6 weeks | October 2026 |
+| 7. Collaboration & Teams | v5.2 | Planned | 8 weeks | December 2026 |
 
 *Note: Timelines assume ~1 FTE on core development. Parallel work on docs, examples, and community support throughout.*
 
@@ -682,7 +690,7 @@ Engram is more than a tool—it's a philosophy: **persistent memory for AI conve
 This roadmap is a commitment to building toward that vision, phase by phase, with your feedback shaping the journey.
 
 **How to get involved:**
-- Try Engram v3.0 and send feedback
+- Try Engram v4.0 and send feedback
 - Run it on your own projects (research, startup, software—whatever you're building)
 - Contribute templates, CLI commands, or documentation
 - Join the conversation: GitHub issues, discussions, and the roadmap updates

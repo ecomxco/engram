@@ -47,6 +47,8 @@ Or with arguments:
 ./init-engram.sh --name "My Research" --author "Jane" --desc "Exploring emergent systems"
 ```
 
+**Safe for existing projects** — the installer backs up any files it would overwrite, never touches files it didn't create, and supports `--dry-run` to preview changes before committing. Run `--uninstall` to cleanly reverse everything.
+
 Then open an AI session in that folder. The AI reads `STATE.md`, picks up where you left off, and follows the protocol automatically.
 
 ---
@@ -266,14 +268,27 @@ Copy the files from [`examples/after-10-sessions/`](examples/after-10-sessions/)
 ```
 ./init-engram.sh [OPTIONS]
 
-  --name NAME     Project name
-  --author NAME   Author name
-  --email EMAIL   Author email (optional)
-  --desc DESC     One-line project description
-  --dir DIR       Target directory (default: current dir)
-  --force         Overwrite existing files without prompting
-  -h, --help      Show help
+  --name NAME       Project name
+  --author NAME     Author name
+  --email EMAIL     Author email (optional)
+  --desc DESC       One-line project description
+  --dir DIR         Target directory (default: current dir)
+  --force           Overwrite existing files without prompting (backs up first)
+  --skip-existing   Skip any files that already exist
+  --dry-run         Preview all changes without touching any files
+  --uninstall       Remove engram files and restore backups
+  --version         Show engram and installer version
+  -h, --help        Show help
 ```
+
+### Uninstalling
+
+```bash
+./init-engram.sh --uninstall             # interactive confirmation
+./init-engram.sh --uninstall --force     # no prompt
+```
+
+The uninstaller reads the install manifest (`.engram-manifest`), removes only files engram created, restores any backed-up originals from `.engram-backup/`, and strips engram rules from `.gitignore`. If the manifest is missing, it tells you — it won't guess.
 
 ---
 
