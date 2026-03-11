@@ -36,4 +36,5 @@ Engram is a lightweight AI memory protocol. Security concerns include:
 
 | Version | Supported |
 |---------|-----------|
-| 1.0.x   | ✅        |
+| 4.0.x   | ✅        |
+| < 4.0   | ❌        |
