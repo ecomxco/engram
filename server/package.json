@@ -1,0 +1,67 @@
+{
+  "name": "engram-protocol",
+  "version": "0.1.0",
+  "description": "MCP server and CLI for the Engram AI memory protocol — persistent context across sessions, devices, and agents",
+  "type": "module",
+  "bin": {
+    "engram": "./dist/bin/engram.js"
+  },
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./core": "./dist/src/core/operations.js",
+    "./types": "./dist/src/core/types.js"
+  },
+  "files": [
+    "dist/",
+    "templates/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ecomxco/engram.git",
+    "directory": "server"
+  },
+  "homepage": "https://github.com/ecomxco/engram#readme",
+  "bugs": {
+    "url": "https://github.com/ecomxco/engram/issues"
+  },
+  "author": "eComX (https://ecom-x.com)",
+  "keywords": [
+    "engram",
+    "mcp",
+    "ai-memory",
+    "model-context-protocol",
+    "brainstorming",
+    "session-logging",
+    "ai-context",
+    "persistent-memory",
+    "claude",
+    "chatgpt",
+    "gemini"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "commander": "^13.0.0",
+    "gray-matter": "^4.0.3",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

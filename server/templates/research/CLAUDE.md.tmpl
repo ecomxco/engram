@@ -1,0 +1,53 @@
+# CLAUDE.md — Project Instructions
+
+## Project: PROJECT_NAME_PLACEHOLDER
+
+**Primary Author:** AUTHOR_NAME_PLACEHOLDER
+**Created:** DATE_PLACEHOLDER
+**Infrastructure Version:** 4.0
+
+---
+
+## On Every Session Start
+
+**Context budget:** Total tokens read at session start must not exceed **4,000 tokens**. Read at most 2 files.
+
+1. **Read STATE.md first.** It contains the current project state, active threads, and context needed for continuity.
+2. **Read ENGRAM.md** for the processed summary of all brainstorming sessions.
+3. **Do NOT read ENGRAM-LOG.md at session start.** Use ENGRAM-INDEX.md for targeted lookups.
+4. **Announce your understanding** of the current state so the author can correct any drift.
+
+---
+
+## Quick Commands
+
+| Command | What It Does |
+| --- | --- |
+| **"checkpoint"** | Sync all docs: log, summary, and state |
+| **"status"** | Read STATE.md, give a concise summary |
+| **"reconcile now"** | Rebuild ENGRAM.md from the full log |
+
+---
+
+## Core Principles
+
+- **Preserve everything.** The log is append-only.
+- **Separate raw from processed.** ENGRAM-LOG.md is truth. ENGRAM.md is the working summary.
+- **State is portable.** STATE.md must contain everything needed to resume — but nothing more.
+- **Be honest.** Flag problems and weaknesses clearly.
+
+---
+
+## File Structure
+
+```text
+PROJECT_NAME_PLACEHOLDER/
+├── CLAUDE.md              ← Project instructions for all agents
+├── STATE.md               ← Current project state (READ FIRST)
+├── ENGRAM-LOG.md          ← Verbatim prompt/response log (append-only)
+├── ENGRAM-INDEX.md        ← Tag map for targeted log retrieval
+├── ENGRAM.md              ← Processed actionable summary
+├── DECISIONS.md           ← Decision log with rationale
+├── AGENTS.md              ← Agent configurations
+└── README.md              ← Project overview
+```

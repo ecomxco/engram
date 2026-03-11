@@ -668,10 +668,51 @@ Smart Home Energy Dashboard
                 max-width: 100%;
             }
         }
+
+        /* ── Drop zone overlay ─────────────────────────────────────────── */
+        .drop-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(124, 106, 247, 0.12);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        .drop-overlay.visible { display: flex; }
+        .drop-box {
+            border: 3px dashed var(--accent);
+            border-radius: 16px;
+            padding: 48px 64px;
+            text-align: center;
+            background: var(--surface);
+            box-shadow: 0 8px 32px rgba(0,0,0,.5);
+        }
+        .drop-box-icon { font-size: 48px; margin-bottom: 12px; }
+        .drop-box-text { font-size: 18px; color: var(--text); font-weight: 600; }
+        .drop-box-sub { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+        .drop-hint {
+            text-align: center;
+            padding: 12px;
+            color: var(--muted);
+            font-size: 12px;
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
     </style>
 </head>
 
 <body>
+    <div class="drop-overlay" id="drop-overlay">
+        <div class="drop-box">
+            <div class="drop-box-icon">📂</div>
+            <div class="drop-box-text">Drop engram files here</div>
+            <div class="drop-box-sub">STATE.md, ENGRAM.md, ENGRAM-LOG.md, DECISIONS.md, AGENTS.md</div>
+        </div>
+    </div>
+
     <div class="app">
 
         <nav class="sidebar">
@@ -704,6 +745,7 @@ Smart Home Energy Dashboard
                 <div class="nav-label">Memory</div>
                 <a class="nav-item" data-page="log" href="#">Full Log</a>
             </div>
+            <div class="drop-hint">Drag &amp; drop engram files to load</div>
         </nav>
 
         <main class="main">
@@ -1425,6 +1467,516 @@ Mar 08, 2026 at 01:32 UTC
         });
 
         updateCount();
+
+        // ── JS Parser + Drag-and-Drop ───────────────────────────────────────────
+        // Parses raw engram markdown files and renders them into the dashboard.
+        // Activates on file drop. Pre-injected (Python) data is preserved if no
+        // files are dropped.
+
+        var EngramParser = (function () {
+            function esc(s) {
+                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            // ── STATE.md parser ─────────────────────────────────────────
+            function parseState(raw) {
+                var fm = { current_turn: 0, last_sync_turn: 0, sync_threshold: 5 };
+                var fmMatch = raw.match(/^---\s*\n([\s\S]*?)\n---/);
+                if (fmMatch) {
+                    var block = fmMatch[1];
+                    var ct = block.match(/current_turn:\s*(\d+)/);
+                    if (ct) fm.current_turn = +ct[1];
+                    var ls = block.match(/last_sync_turn:\s*(\d+)/);
+                    if (ls) fm.last_sync_turn = +ls[1];
+                    var st = block.match(/sync_threshold:\s*(\d+)/);
+                    if (st) fm.sync_threshold = +st[1];
+                }
+                var totalMatch = raw.match(/\*\*Total Sessions:\*\*\s*(\d+)/);
+                var total = totalMatch ? +totalMatch[1] : 0;
+                var updated = raw.match(/\*\*Last Updated:\*\*\s*(.+)/);
+                return { frontmatter: fm, totalSessions: total, lastUpdated: updated ? updated[1].trim() : '' };
+            }
+
+            // ── ENGRAM.md parser ────────────────────────────────────────
+            function parseEngram(raw) {
+                var ws = [], problems = [], tasks = [], questions = [], decRefs = [];
+                // Workstreams
+                var wsSection = extractSection(raw, 'Workstreams');
+                if (wsSection) {
+                    wsSection.replace(/- \*\*(.+?)\*\*\s*—\s*(.+)/g, function (_, n, d) {
+                        ws.push({ name: n, description: d.trim() });
+                    });
+                }
+                // Problems
+                var probSection = extractSection(raw, 'Open Problems');
+                if (probSection) {
+                    var curP = 'P2';
+                    probSection.split('\n').forEach(function (line) {
+                        var pm = line.match(/^\*\*(P\d)/);
+                        if (pm) curP = pm[1];
+                        var item = line.match(/^- (.+)/);
+                        if (item) problems.push({ priority: curP, description: item[1] });
+                    });
+                }
+                // Tasks
+                var taskSection = extractSection(raw, 'Tasks');
+                if (taskSection) {
+                    var curGroup = null;
+                    taskSection.split('\n').forEach(function (line) {
+                        var gm = line.match(/^\*\*(.+?):\*\*/);
+                        if (gm) { curGroup = { group: gm[1], tasks: [] }; tasks.push(curGroup); }
+                        var tm = line.match(/^- \[([ x])\] (.+)/);
+                        if (tm && curGroup) curGroup.tasks.push({ done: tm[1] === 'x', description: tm[2] });
+                    });
+                }
+                // Questions
+                var qSection = extractSection(raw, 'Open Questions');
+                if (qSection) {
+                    qSection.replace(/^\d+\.\s+(.+)/gm, function (_, q) { questions.push(q); });
+                }
+                // Decision refs
+                var dSection = extractSection(raw, 'Decisions Made');
+                if (dSection) {
+                    dSection.replace(/^- (.+)/gm, function (_, r) { decRefs.push(r); });
+                }
+                var upd = raw.match(/\*\*Last Updated:\*\*\s*(.+)/);
+                var sp = raw.match(/\*\*Sessions Processed:\*\*\s*(\d+)/);
+                return {
+                    lastUpdated: upd ? upd[1].trim() : '', sessionsProcessed: sp ? +sp[1] : 0,
+                    workstreams: ws, openProblems: problems, tasks: tasks,
+                    openQuestions: questions, decisionRefs: decRefs
+                };
+            }
+
+            function extractSection(content, heading) {
+                var re = new RegExp('##\\s+' + heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s|\\n---\\s*$|$)');
+                var m = content.match(re);
+                return m ? m[1] : null;
+            }
+
+            // ── DECISIONS.md parser ─────────────────────────────────────
+            function parseDecisions(raw) {
+                var decisions = [], pending = [];
+                var parts = raw.split(/(?=## Decision \d+)/);
+                parts.forEach(function (part) {
+                    var hdr = part.match(/## Decision (\d+)\s*—\s*(.+)/);
+                    if (!hdr) return;
+                    var d = { number: +hdr[1], title: hdr[2].trim() };
+                    d.date = field(part, 'Date');
+                    d.session = +(field(part, 'Session') || '0');
+                    d.status = field(part, 'Status');
+                    d.decision = field(part, 'Decision');
+                    d.alternatives = field(part, 'Alternatives Considered');
+                    d.rationale = field(part, 'Rationale');
+                    d.context = field(part, 'Context');
+                    d.tags = (field(part, 'Tags') || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+                    decisions.push(d);
+                });
+                var pendingSection = extractSection(raw, 'Pending Decisions');
+                if (pendingSection) {
+                    pendingSection.replace(/^- (.+)/gm, function (_, p) { pending.push(p); });
+                }
+                return { decisions: decisions, pendingDecisions: pending };
+            }
+
+            function field(block, name) {
+                var re = new RegExp('\\*\\*' + name + ':\\*\\*\\s*(.+)');
+                var m = block.match(re);
+                return m ? m[1].trim() : '';
+            }
+
+            // ── AGENTS.md parser ────────────────────────────────────────
+            function parseAgents(raw) {
+                var agents = [];
+                var projMatch = raw.match(/## Project:\s*(.+)/);
+                var projName = projMatch ? projMatch[1].trim() : '';
+                // Parse table
+                var lines = raw.split('\n');
+                var inTable = false;
+                lines.forEach(function (line) {
+                    if (line.match(/^\|[-\s|]+\|$/)) { inTable = true; return; }
+                    if (!inTable) return;
+                    var cells = line.split('|').map(function (c) { return c.trim(); }).filter(Boolean);
+                    if (cells.length >= 4) {
+                        agents.push({ agent: cells[0], provider: cells[1], firstUsed: cells[2], notes: cells[3] });
+                    }
+                });
+                return { projectName: projName, agents: agents };
+            }
+
+            // ── ENGRAM-LOG.md parser ────────────────────────────────────
+            function parseLog(raw) {
+                var sessions = [];
+                var sessionParts = raw.split(/(?=### Session \d+)/);
+                sessionParts.forEach(function (part) {
+                    var hdr = part.match(/### Session (\d+)\s*—\s*(\S+)\s*—\s*Mode:\s*(.+)/);
+                    if (!hdr) return;
+                    var session = {
+                        number: +hdr[1], date: hdr[2].trim(), mode: hdr[3].trim(),
+                        exchanges: []
+                    };
+                    // Parse markdown-format exchanges
+                    var turnRe = /\*\*\[(\d+:\d+)\s+UTC\]\s+(.+?):\*\*\s*>\s*([\s\S]*?)(?=\*\*\[|\n### Session|\n- timestamp:|$)/g;
+                    var m;
+                    while ((m = turnRe.exec(part)) !== null) {
+                        session.exchanges.push({
+                            timestamp: m[1] + ' UTC', speaker: m[2].trim(),
+                            content: m[3].replace(/^>\s*/gm, '').trim()
+                        });
+                    }
+                    // Parse YAML-format exchanges
+                    var yamlRe = /- timestamp:\s*"(.+?)"\s*\n\s*turn:\s*(\d+)\s*\n\s*agent:\s*"(.+?)"\s*\n[\s\S]*?prompt:\s*\|\s*\n([\s\S]*?)response:\s*\|\s*\n([\s\S]*?)(?=\n- timestamp:|\n### Session|$)/g;
+                    while ((m = yamlRe.exec(part)) !== null) {
+                        var prompt = m[4].replace(/^\s{4}/gm, '').trim();
+                        var response = m[5].replace(/^\s{4}/gm, '').trim();
+                        session.exchanges.push({
+                            timestamp: m[1], speaker: 'Human',
+                            content: prompt
+                        });
+                        session.exchanges.push({
+                            timestamp: m[1], speaker: m[3],
+                            content: response
+                        });
+                    }
+                    sessions.push(session);
+                });
+                return { sessions: sessions };
+            }
+
+            // ── HTML Renderers ──────────────────────────────────────────
+
+            function renderStats(data) {
+                return '<div class="stats">' +
+                    '<div class="stat"><div class="stat-num">' + data.sessions + '</div><div class="stat-label">Sessions</div></div>' +
+                    '<div class="stat"><div class="stat-num">' + data.decisions + '</div><div class="stat-label">Decisions</div></div>' +
+                    '<div class="stat"><div class="stat-num">' + data.workstreams + '</div><div class="stat-label">Workstreams</div></div>' +
+                    '<div class="stat"><div class="stat-num">' + data.agents + '</div><div class="stat-label">AI Agents</div></div>' +
+                    '</div>';
+            }
+
+            function modeTag(mode) {
+                var m = mode.toLowerCase();
+                if (m.includes('brainstorm')) return 'tag-purple';
+                if (m.includes('implementation')) return 'tag-teal';
+                if (m.includes('review')) return 'tag-amber';
+                return 'tag-muted';
+            }
+
+            function renderTimeline(sessions) {
+                return sessions.map(function (s) {
+                    var agents = [];
+                    s.exchanges.forEach(function (e) {
+                        var sp = e.speaker;
+                        if (sp !== 'Human' && sp !== 'Alex' && agents.indexOf(sp) === -1) agents.push(sp);
+                    });
+                    var summary = '';
+                    for (var i = 0; i < s.exchanges.length; i++) {
+                        if (s.exchanges[i].speaker !== 'Human' && s.exchanges[i].speaker !== 'Alex') {
+                            summary = s.exchanges[i].content.slice(0, 120);
+                            break;
+                        }
+                    }
+                    return '<div class="tl-item tl-clickable" data-session="' + s.number + '" role="button" tabindex="0">' +
+                        '<div class="tl-dot ' + s.mode.split(/[+ ]/)[0].trim().toLowerCase() + '"></div>' +
+                        '<div class="tl-head">' +
+                        '<span class="tl-num">Session ' + s.number + '</span>' +
+                        '<span class="tl-date">' + esc(s.date) + '</span>' +
+                        '<span class="tag ' + modeTag(s.mode) + '">' + esc(s.mode) + '</span>' +
+                        agents.map(function (a) { return '<span class="tag tag-purple">' + esc(a.split(' ')[0]) + '</span>'; }).join('') +
+                        '<span class="tl-link">View log →</span>' +
+                        '</div>' +
+                        '<div class="tl-summary">' + esc(summary) + '</div>' +
+                        '</div>';
+                }).join('\n');
+            }
+
+            function severityTag(p) {
+                if (p === 'P0') return 'tag-red';
+                if (p === 'P1') return 'tag-amber';
+                return 'tag-purple';
+            }
+
+            function renderDecisions(decisions) {
+                return decisions.map(function (d) {
+                    var statusClass = (d.status || '').toLowerCase().includes('implement') ? 'tag-green' : 'tag-amber';
+                    return '<div class="card">' +
+                        '<div class="card-head">' +
+                        '<span class="card-id">#' + d.number + '</span>' +
+                        '<span class="card-title">' + esc(d.title) + '</span>' +
+                        '<span class="tag ' + statusClass + '">' + esc(d.status) + '</span>' +
+                        '</div>' +
+                        '<div class="card-body">' +
+                        '<div class="detail-row"><span class="detail-label">Decision</span><span class="detail-val">' + esc(d.decision) + '</span></div>' +
+                        '<div class="detail-row"><span class="detail-label">Alternatives</span><span class="detail-val">' + esc(d.alternatives) + '</span></div>' +
+                        '<div class="detail-row"><span class="detail-label">Rationale</span><span class="detail-val">' + esc(d.rationale) + '</span></div>' +
+                        '</div>' +
+                        '<div class="card-meta">' +
+                        '<span class="tag tag-muted">Session ' + d.session + '</span>' +
+                        '<span class="tag tag-muted">' + esc(d.date) + '</span>' +
+                        d.tags.map(function (t) { return '<span class="tag tag-muted">' + esc(t) + '</span>'; }).join('') +
+                        '</div></div>';
+                }).join('\n');
+            }
+
+            function renderWorkstreams(workstreams) {
+                return workstreams.map(function (w, i) {
+                    return '<div class="card">' +
+                        '<div class="card-head">' +
+                        '<span class="card-id">#' + (i + 1) + '</span>' +
+                        '<span class="card-title">' + esc(w.name) + '</span>' +
+                        '</div>' +
+                        '<div class="card-body">' +
+                        '<div class="detail-row"><span class="detail-val">' + esc(w.description) + '</span></div>' +
+                        '</div></div>';
+                }).join('\n');
+            }
+
+            function renderAgents(agents) {
+                return agents.map(function (a) {
+                    var initial = a.agent.charAt(0).toUpperCase();
+                    return '<div class="agent-card">' +
+                        '<div class="agent-avatar">' + initial + '</div>' +
+                        '<div class="agent-name">' + esc(a.agent) + '</div>' +
+                        '<div class="agent-role">' + esc(a.provider) + '</div>' +
+                        '<div><span class="tag tag-muted">' + esc(a.firstUsed) + '</span></div>' +
+                        '<div style="font-size:12px;color:var(--muted)">' + esc(a.notes) + '</div>' +
+                        '</div>';
+                }).join('\n');
+            }
+
+            function renderOpenItems(engram) {
+                var html = '';
+                // Problems
+                if (engram.openProblems.length > 0) {
+                    html += '<h3 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Problems</h3>';
+                    engram.openProblems.forEach(function (p) {
+                        html += '<div class="card" style="margin-bottom:10px"><div class="card-head">' +
+                            '<span class="tag ' + severityTag(p.priority) + '">' + p.priority + '</span>' +
+                            '<span class="card-title" style="font-size:14px">' + esc(p.description.slice(0, 80)) + '</span>' +
+                            '</div></div>';
+                    });
+                }
+                // Tasks
+                var allTasks = [];
+                engram.tasks.forEach(function (g) { g.tasks.forEach(function (t) { allTasks.push(t); }); });
+                if (allTasks.length > 0) {
+                    html += '<h3 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 12px">Tasks</h3>';
+                    html += '<div class="card" style="padding:0 16px">';
+                    allTasks.forEach(function (t) {
+                        var icon = t.done ? '<span style="color:var(--green)">☑</span>' : '<span style="color:var(--accent)">☐</span>';
+                        html += '<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px">' +
+                            icon + '<span>' + esc(t.description) + '</span></div>';
+                    });
+                    html += '</div>';
+                }
+                // Questions
+                if (engram.openQuestions.length > 0) {
+                    html += '<h3 style="font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 12px">Questions</h3>';
+                    html += '<div class="card" style="padding:0 16px">';
+                    engram.openQuestions.forEach(function (q, i) {
+                        html += '<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px">' +
+                            '<span style="color:var(--muted)">' + (i + 1) + '.</span><span>' + esc(q) + '</span></div>';
+                    });
+                    html += '</div>';
+                }
+                return html || '<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">No open items</div></div>';
+            }
+
+            function renderLog(sessions) {
+                return sessions.map(function (s, si) {
+                    var openAttr = si === 0 ? ' open' : '';
+                    var turns = s.exchanges.map(function (e) {
+                        var isHuman = e.speaker === 'Human' || e.speaker === 'Alex' || e.speaker.toLowerCase().includes('human');
+                        var cls = isHuman ? 'turn-human' : 'turn-ai';
+                        var spCls = isHuman ? 'turn-speaker-human' : 'turn-speaker-ai';
+                        var ts = e.timestamp.replace(/\d{4}-\d{2}-\d{2}\s*/, '').replace(/\s*UTC/, '');
+                        var copyData = esc(e.content).replace(/\n/g, '&#10;');
+                        return '<div class="turn ' + cls + '">' +
+                            '<div class="turn-meta">' +
+                            '<span class="' + spCls + '">' + esc(e.speaker) + '</span>' +
+                            '<span class="turn-ts">' + esc(ts || e.timestamp) + '</span>' +
+                            '<button class="copy-btn" data-copy="' + copyData + '" title="Copy to clipboard" aria-label="Copy">Copy</button>' +
+                            '</div>' +
+                            '<div class="turn-body"><p>' + esc(e.content).replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') + '</p></div>' +
+                            '</div>';
+                    }).join('\n');
+                    return '<details class="session-block" id="session-' + s.number + '"' + openAttr + '>' +
+                        '<summary class="session-summary">' +
+                        '<span class="tl-num">Session ' + s.number + '</span>' +
+                        '<span class="tl-date">' + esc(s.date) + '</span>' +
+                        '<span class="tag ' + modeTag(s.mode) + '">' + esc(s.mode) + '</span>' +
+                        '<span class="turn-count">' + s.exchanges.length + ' turns</span>' +
+                        '</summary>' +
+                        '<div class="session-turns">' + turns + '</div>' +
+                        '</details>';
+                }).join('\n');
+            }
+
+            // ── Injection ───────────────────────────────────────────────
+            function inject(name, html) {
+                var begin = '<!-- BEGIN_ENGRAM_' + name + ' -->';
+                var end = '<!-- END_ENGRAM_' + name + ' -->';
+                var containers = document.querySelectorAll('*');
+                // Walk the DOM looking for the sentinel comments or innerHTML
+                // Simpler approach: find parent elements containing these comments
+                var allHTML = document.documentElement.innerHTML;
+                var startIdx = allHTML.indexOf(begin);
+                var endIdx = allHTML.indexOf(end);
+                if (startIdx === -1 || endIdx === -1) return;
+
+                // Use a targeted approach: find the parent node
+                var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_COMMENT, null);
+                var beginNode = null, endNode = null;
+                while (walker.nextNode()) {
+                    if (walker.currentNode.textContent.trim() === 'BEGIN_ENGRAM_' + name) beginNode = walker.currentNode;
+                    if (walker.currentNode.textContent.trim() === 'END_ENGRAM_' + name) endNode = walker.currentNode;
+                }
+                if (!beginNode || !endNode || beginNode.parentNode !== endNode.parentNode) return;
+
+                var parent = beginNode.parentNode;
+                // Remove everything between begin and end comments
+                var node = beginNode.nextSibling;
+                while (node && node !== endNode) {
+                    var next = node.nextSibling;
+                    parent.removeChild(node);
+                    node = next;
+                }
+                // Insert new HTML
+                var temp = document.createElement('div');
+                temp.innerHTML = html;
+                while (temp.firstChild) {
+                    parent.insertBefore(temp.firstChild, endNode);
+                }
+            }
+
+            // Also handle the <title> sentinel (special: inside <head>)
+            function injectTitle(name) {
+                var titleEl = document.querySelector('title');
+                if (titleEl) titleEl.textContent = 'Engram — ' + name;
+            }
+
+            // ── Main render ─────────────────────────────────────────────
+            function render(files) {
+                var state = files['STATE.md'] ? parseState(files['STATE.md']) : null;
+                var engram = files['ENGRAM.md'] ? parseEngram(files['ENGRAM.md']) : null;
+                var dec = files['DECISIONS.md'] ? parseDecisions(files['DECISIONS.md']) : null;
+                var agents = files['AGENTS.md'] ? parseAgents(files['AGENTS.md']) : null;
+                var log = files['ENGRAM-LOG.md'] ? parseLog(files['ENGRAM-LOG.md']) : null;
+
+                var projectName = (agents && agents.projectName) || 'Engram Project';
+                var sessionCount = log ? log.sessions.length : (state ? state.totalSessions : 0);
+                var decCount = dec ? dec.decisions.length : 0;
+                var wsCount = engram ? engram.workstreams.length : 0;
+                var agentCount = agents ? agents.agents.length : 0;
+
+                injectTitle(projectName);
+                inject('TITLE', projectName);
+                inject('PROJECT_NAME', '<div class="logo-sub">' + esc(projectName) + '</div>');
+                inject('LAST_UPDATED', state && state.lastUpdated ? esc(state.lastUpdated) : new Date().toLocaleString());
+                inject('STATS', renderStats({ sessions: sessionCount, decisions: decCount, workstreams: wsCount, agents: agentCount }));
+
+                if (log) inject('TIMELINE', renderTimeline(log.sessions));
+                if (dec) inject('DECISIONS', renderDecisions(dec.decisions));
+                if (engram) inject('WORKSTREAMS', renderWorkstreams(engram.workstreams));
+                if (agents) inject('AGENTS', renderAgents(agents.agents));
+                if (engram) inject('OPEN_ITEMS', renderOpenItems(engram));
+                if (log) inject('LOG', renderLog(log.sessions));
+
+                // Re-bind event listeners for new content
+                rebindEvents();
+            }
+
+            function rebindEvents() {
+                // Timeline click-to-log
+                document.querySelectorAll('.tl-clickable').forEach(function (item) {
+                    item.onclick = function () {
+                        var sid = item.dataset.session;
+                        showPage('log');
+                        requestAnimationFrame(function () {
+                            var block = document.getElementById('session-' + sid);
+                            if (block) {
+                                block.open = true;
+                                block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                block.style.outline = '2px solid var(--accent)';
+                                setTimeout(function () { block.style.outline = ''; }, 1200);
+                            }
+                        });
+                    };
+                });
+                // Copy buttons
+                document.querySelectorAll('.copy-btn').forEach(function (btn) {
+                    btn.onclick = function (e) {
+                        e.stopPropagation();
+                        var text = btn.getAttribute('data-copy')
+                            .replace(/&#10;/g, '\n').replace(/&quot;/g, '"')
+                            .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(text).then(function () {
+                                btn.textContent = 'Copied!'; btn.classList.add('copied');
+                                setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+                            });
+                        }
+                    };
+                });
+                updateCount();
+            }
+
+            return { parseState: parseState, parseEngram: parseEngram, parseDecisions: parseDecisions, parseAgents: parseAgents, parseLog: parseLog, render: render };
+        })();
+
+        // ── Drag-and-drop handler ───────────────────────────────────────────────
+        (function () {
+            var overlay = document.getElementById('drop-overlay');
+            var dragCount = 0;
+
+            document.addEventListener('dragenter', function (e) {
+                e.preventDefault();
+                dragCount++;
+                overlay.classList.add('visible');
+            });
+
+            document.addEventListener('dragleave', function (e) {
+                e.preventDefault();
+                dragCount--;
+                if (dragCount <= 0) { dragCount = 0; overlay.classList.remove('visible'); }
+            });
+
+            document.addEventListener('dragover', function (e) {
+                e.preventDefault();
+            });
+
+            document.addEventListener('drop', function (e) {
+                e.preventDefault();
+                dragCount = 0;
+                overlay.classList.remove('visible');
+
+                var fileList = e.dataTransfer.files;
+                if (!fileList || fileList.length === 0) return;
+
+                var expectedNames = ['STATE.md', 'ENGRAM.md', 'ENGRAM-LOG.md', 'DECISIONS.md', 'AGENTS.md'];
+                var loaded = {};
+                var pending = 0;
+
+                Array.from(fileList).forEach(function (file) {
+                    var name = file.name;
+                    if (expectedNames.indexOf(name) === -1) return;
+                    pending++;
+                    var reader = new FileReader();
+                    reader.onload = function () {
+                        loaded[name] = reader.result;
+                        pending--;
+                        if (pending === 0) {
+                            EngramParser.render(loaded);
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+
+                if (pending === 0) {
+                    console.warn('No recognized engram files in drop. Expected: ' + expectedNames.join(', '));
+                }
+            });
+        })();
     </script>
 </body>
 

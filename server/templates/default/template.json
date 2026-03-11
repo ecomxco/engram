@@ -1,0 +1,14 @@
+{
+  "name": "default",
+  "description": "General-purpose engram project template",
+  "files": [
+    "CLAUDE.md.tmpl",
+    "STATE.md.tmpl",
+    "ENGRAM-LOG.md.tmpl",
+    "ENGRAM.md.tmpl",
+    "DECISIONS.md.tmpl",
+    "AGENTS.md.tmpl",
+    "ENGRAM-INDEX.md.tmpl",
+    "README.md.tmpl"
+  ]
+}

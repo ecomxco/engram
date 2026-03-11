@@ -322,9 +322,77 @@ If your work wraps up in one session, yes. Engram is for projects that span days
 
 ---
 
+## MCP Server + CLI
+
+Engram also ships as an npm package with a Model Context Protocol (MCP) server and command-line interface. The MCP server gives AI tools direct read/write access to your engram files via structured tool calls.
+
+### Install
+
+```bash
+npm install -g engram-protocol
+```
+
+Or use without installing:
+
+```bash
+npx engram-protocol init --name "My Project" --template research
+```
+
+### CLI Commands
+
+```bash
+engram init [--template TYPE]   # Scaffold a new project (default, research, software, writing, startup)
+engram serve                    # Start the MCP server (stdio transport)
+engram status                   # Print a summary of current project state
+engram checkpoint               # Sync all files: log, summary, state, index
+engram search "query"           # Search across all engram files
+engram decisions [--filter X]   # List decisions
+engram reconcile                # Rebuild ENGRAM.md from the full log
+engram handoff                  # Generate HANDOFF.md for fast context restore
+engram rotate                   # Archive and rotate the log
+```
+
+### MCP Server Setup
+
+Add to your Claude Desktop or MCP-compatible client config:
+
+```json
+{
+  "mcpServers": {
+    "engram": {
+      "command": "npx",
+      "args": ["-y", "engram-protocol", "serve"],
+      "env": {
+        "ENGRAM_PROJECT_DIR": "/path/to/your/project"
+      }
+    }
+  }
+}
+```
+
+The server exposes 11 tools (`engram_status`, `engram_log_exchange`, `engram_checkpoint`, etc.) and 4 resources (`engram://state`, `engram://summary`, `engram://decisions`, `engram://agents`).
+
+### Templates
+
+Five project templates with domain-specific workstreams:
+
+| Template | Workstreams |
+|----------|-------------|
+| `default` | General purpose |
+| `research` | Literature Review, Methodology, Analysis, Writing |
+| `software` | Architecture, Implementation, Testing, DevOps |
+| `writing` | Concept, Drafting, Revision, Publication |
+| `startup` | Discovery, Product, Business Model, Go-to-Market |
+
+### Multi-Device Usage
+
+See [server/docs/multi-device.md](server/docs/multi-device.md) for git sync, advisory locking, and team workflows.
+
+---
+
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) — CLI tool, MCP server, project templates, cross-project memory, and more.
+The MCP server and CLI close most items from the original roadmap. Remaining: cross-project memory, automated log rotation policies, and plugin ecosystem.
 
 ## Contributing
 

@@ -1,0 +1,70 @@
+# Smart Home Energy Dashboard
+
+A personal energy monitoring dashboard that tracks electricity usage, identifies costly appliances, and recommends ways to reduce your bill.
+
+**Author:** Alex Chen (alex@example.com)
+**Computational Analysis:** Claude (Anthropic)
+**Created:** 2026-01-15
+**Infrastructure:** Engram v3.0
+
+---
+
+## Getting Started
+
+If you're opening this project for the first time:
+
+1. Read this file for an overview of what's here and why.
+2. Open a new Claude session in this folder.
+3. Claude will read STATE.md automatically and announce the current project state.
+4. Start brainstorming. Claude handles the documentation infrastructure.
+
+If you're an AI agent, read CLAUDE.md for your operating instructions.
+
+---
+
+## Project Infrastructure
+
+| File | Purpose | Mutability |
+|------|---------|------------|
+| `CLAUDE.md` | Instructions for Claude — operating protocol | Rarely updated |
+| `AGENTS.md` | Agent configurations and registry | Updated when agents change |
+| `README.md` | This file — project overview | Rarely updated |
+| `STATE.md` | Current project state — portable across devices | Updated every session |
+| `ENGRAM-LOG.md` | Verbatim log of all sessions | Append-only |
+| `ENGRAM.md` | Processed actionable summary | Updated at checkpoints |
+| `DECISIONS.md` | Decision log with rationale and timestamps | Append-only |
+| `.gitignore` | Git ignore rules | Rarely updated |
+
+---
+
+## Assumptions & Limitations
+
+This architecture is designed for:
+- Solo or small-team research and ideation
+- AI-assisted brainstorming with one primary human author
+- Markdown-based, file-based workflows
+- Projects up to ~50 sessions before needing structural evolution
+
+It assumes:
+- Sessions are discrete (clear start/end)
+- One device is active at a time (no simultaneous multi-device editing)
+- Markdown is sufficient as the storage medium
+- The AI agent can reliably follow the protocol (but includes checkpoints as a safety net)
+
+**When to evolve:** If you find yourself with more than 3 active workstreams, 50+ sessions, or multiple collaborators editing simultaneously, consider adding thread tagging, a structured index, or migrating to a database-backed system.
+
+---
+
+## Sync & Conflict Avoidance
+
+If using git or cloud sync (Dropbox, iCloud, etc.):
+- **Always pull/sync before starting a new session.** STATE.md and ENGRAM.md are the most conflict-prone files.
+- ENGRAM-LOG.md is append-only, so conflicts there are rare and easy to resolve.
+- DECISIONS.md is also append-only.
+- If a conflict occurs in STATE.md, prefer the more recent version and regenerate from the log if needed.
+
+---
+
+## Contact
+
+Alex Chen (alex@example.com)
