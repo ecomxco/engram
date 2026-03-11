@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { homedir, platform } from 'node:os';
 
@@ -67,4 +67,61 @@ export function patchClaudeDesktop(projectDir: string): { patched: boolean; mess
   writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
 
   return { patched: true, message: 'Engram added to Claude Desktop config. Restart Claude Desktop to activate.' };
+}
+
+/**
+ * Patch Antigravity's MCP config to include the engram server.
+ * Config lives at ~/.gemini/antigravity/mcp_config.json on all platforms.
+ */
+export function patchAntigravity(projectDir: string): { patched: boolean; message: string } {
+  const configDir = join(homedir(), '.gemini', 'antigravity');
+  const configPath = join(configDir, 'mcp_config.json');
+
+  if (!existsSync(configDir)) {
+    return { patched: false, message: `Antigravity config directory not found at ${configDir}. Is Antigravity installed?` };
+  }
+
+  // If config file doesn't exist or is empty, create it with just the engram entry
+  const rawContent = existsSync(configPath) ? readFileSync(configPath, 'utf-8').trim() : '';
+  if (!rawContent) {
+    const config = {
+      mcpServers: {
+        engram: {
+          command: 'npx',
+          args: ['-y', 'engram-protocol', 'serve'],
+          env: {
+            ENGRAM_PROJECT_DIR: resolve(projectDir),
+          },
+        },
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+    return { patched: true, message: 'Engram added to Antigravity config. Restart Antigravity to activate.' };
+  }
+
+  let config: Record<string, unknown>;
+  try {
+    config = JSON.parse(rawContent);
+  } catch {
+    return { patched: false, message: `Failed to parse ${configPath}. Fix the JSON manually and retry.` };
+  }
+
+  const servers = (config.mcpServers ?? {}) as Record<string, unknown>;
+
+  if (servers.engram) {
+    return { patched: false, message: 'Engram is already configured in Antigravity. No changes made.' };
+  }
+
+  servers.engram = {
+    command: 'npx',
+    args: ['-y', 'engram-protocol', 'serve'],
+    env: {
+      ENGRAM_PROJECT_DIR: resolve(projectDir),
+    },
+  };
+
+  config.mcpServers = servers;
+  writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n', 'utf-8');
+
+  return { patched: true, message: 'Engram added to Antigravity config. Restart Antigravity to activate.' };
 }

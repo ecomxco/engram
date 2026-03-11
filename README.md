@@ -48,11 +48,13 @@ That's it. One command creates everything:
 
 Open the folder in Claude Code or Cursor — engram activates automatically. No config editing.
 
-For Claude Desktop, add `--claude-desktop` to also configure the desktop app:
+To configure **all** AI clients at once (Claude Desktop + Antigravity):
 
 ```bash
-npx engram-protocol setup --name "My Project" --claude-desktop
+npx engram-protocol setup --name "My Project" --all
 ```
+
+Or configure individually: `--claude-desktop`, `--antigravity`.
 
 ---
 
@@ -218,15 +220,16 @@ No server. No build step. Open the HTML file directly.
 
 Every log entry is attributed to the model that generated it. Engram works across:
 
-| Agent | How to Use |
-| --- | --- |
-| **Claude** (claude.ai, Claude Code) | Reads `CLAUDE.md` natively as project instructions |
-| **ChatGPT** | Paste or upload `STATE.md` + `ENGRAM.md` at session start |
-| **Gemini** | Upload files or paste into the context window |
-| **Grok** | Paste `STATE.md` + `ENGRAM.md` |
-| **Cursor** | Open the project folder — reads `CLAUDE.md` automatically |
-| **Antigravity** | Natively supported — runs the full workflow suite autonomously |
-| **Any local model** | Same approach: file-based context injection |
+| Agent | Setup | How It Works |
+| --- | --- | --- |
+| **Claude Code** | `engram setup` | Auto-configured via `.mcp.json` — zero manual steps |
+| **Cursor** | `engram setup` | Auto-configured via `.mcp.json` — zero manual steps |
+| **Claude Desktop** | `engram setup --claude-desktop` | Patches global config automatically |
+| **Antigravity** | `engram setup --antigravity` | Patches global config automatically |
+| **ChatGPT** | Manual | Paste or upload `STATE.md` + `ENGRAM.md` at session start |
+| **Gemini** | Manual | Upload files or paste into the context window |
+| **Grok** | Manual | Paste `STATE.md` + `ENGRAM.md` |
+| **Any local model** | Manual | File-based context injection |
 
 Multi-AI workflows are a first-class use case. The `AGENTS.md` registry tracks every model that participates, with session attribution, role assignment (primary / reviewer), and the handoff protocol.
 
@@ -265,6 +268,8 @@ npx engram-protocol setup [OPTIONS]
   -t, --template TYPE     Template type (default: "default")
   -d, --dir DIR           Target directory (default: current dir)
   --claude-desktop        Also configure Claude Desktop app
+  --antigravity           Also configure Antigravity IDE
+  --all                   Configure all supported AI clients
 ```
 
 ### Global Install
@@ -322,9 +327,17 @@ If your work wraps up in one session, yes. Engram is for projects that span days
 
 The npm package includes a Model Context Protocol (MCP) server that gives AI tools direct read/write access to your engram files via structured tool calls.
 
-**Claude Code / Cursor:** The `.mcp.json` file created during setup auto-configures the MCP server. Nothing to do.
+Setup auto-configures the MCP server for your AI client. Use `--all` to configure everything at once, or pick individual flags:
 
-**Claude Desktop:** Run `engram setup --claude-desktop` or add manually:
+| Client | Config Method | Flag |
+|--------|--------------|------|
+| **Claude Code** | `.mcp.json` in project root | Automatic (always created) |
+| **Cursor** | `.mcp.json` in project root | Automatic (always created) |
+| **Claude Desktop** | Global config patched | `--claude-desktop` |
+| **Antigravity** | Global config patched | `--antigravity` |
+| **All of the above** | Everything at once | `--all` |
+
+**Manual config** (if needed): add this to your client's MCP config file:
 
 ```json
 {
@@ -337,6 +350,12 @@ The npm package includes a Model Context Protocol (MCP) server that gives AI too
   }
 }
 ```
+
+| Client | Config file location |
+|--------|---------------------|
+| Claude Desktop (macOS) | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Claude Desktop (Windows) | `%APPDATA%\Claude\claude_desktop_config.json` |
+| Antigravity | `~/.gemini/antigravity/mcp_config.json` |
 
 The server exposes 11 tools (`engram_status`, `engram_log_exchange`, `engram_checkpoint`, etc.) and 4 resources (`engram://state`, `engram://summary`, `engram://decisions`, `engram://agents`).
 

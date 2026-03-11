@@ -10,7 +10,7 @@ import {
   search,
 } from '../core/operations.js';
 import { initProject, listTemplates } from '../core/templates.js';
-import { patchClaudeDesktop } from '../core/mcp-config.js';
+import { patchAntigravity, patchClaudeDesktop } from '../core/mcp-config.js';
 import { startServer } from '../index.js';
 import { error, heading, success, table, warn } from './output.js';
 
@@ -30,19 +30,37 @@ export function createCli(): Command {
       await startServer();
     });
 
+  // ── setup options (shared between init and setup) ──────────────────
+  interface SetupOpts {
+    template: string;
+    name: string;
+    author: string;
+    dir?: string;
+    claudeDesktop?: boolean;
+    antigravity?: boolean;
+    all?: boolean;
+  }
+
+  function addSetupOptions(cmd: Command): Command {
+    return cmd
+      .option('-t, --template <type>', 'Template type', 'default')
+      .option('-n, --name <name>', 'Project name', 'My Project')
+      .option('-a, --author <author>', 'Author name', 'Author')
+      .option('-d, --dir <dir>', 'Target directory')
+      .option('--claude-desktop', 'Also configure Claude Desktop app')
+      .option('--antigravity', 'Also configure Antigravity IDE')
+      .option('--all', 'Configure all supported AI clients');
+  }
+
   // ── init (alias for setup) ─────────────────────────────────────────
-  program
-    .command('init')
-    .description('Scaffold a new engram project (alias for setup)')
-    .option('-t, --template <type>', 'Template type', 'default')
-    .option('-n, --name <name>', 'Project name', 'My Project')
-    .option('-a, --author <author>', 'Author name', 'Author')
-    .option('-d, --dir <dir>', 'Target directory')
-    .option('--claude-desktop', 'Also configure Claude Desktop app')
-    .action(runSetup);
+  addSetupOptions(
+    program
+      .command('init')
+      .description('Scaffold a new engram project (alias for setup)'),
+  ).action(runSetup);
 
   // ── setup ─────────────────────────────────────────────────────────
-  function runSetup(opts: { template: string; name: string; author: string; dir?: string; claudeDesktop?: boolean }) {
+  function runSetup(opts: SetupOpts) {
     try {
       const msg = initProject({
         template: opts.template,
@@ -52,9 +70,21 @@ export function createCli(): Command {
       });
       success(msg);
 
-      if (opts.claudeDesktop) {
-        const targetDir = opts.dir ?? process.cwd();
+      const targetDir = opts.dir ?? process.cwd();
+      const configureDesktop = opts.claudeDesktop || opts.all;
+      const configureAntigravity = opts.antigravity || opts.all;
+
+      if (configureDesktop) {
         const result = patchClaudeDesktop(targetDir);
+        if (result.patched) {
+          success(result.message);
+        } else {
+          warn(result.message);
+        }
+      }
+
+      if (configureAntigravity) {
+        const result = patchAntigravity(targetDir);
         if (result.patched) {
           success(result.message);
         } else {
@@ -64,8 +94,13 @@ export function createCli(): Command {
 
       console.log('');
       heading('Next Steps');
-      console.log('Open this folder in Claude Code — engram activates automatically.');
-      console.log('The .mcp.json file configures the MCP server for you.');
+      console.log('Claude Code / Cursor — open this folder. Engram activates automatically via .mcp.json.');
+      if (!configureDesktop) {
+        console.log('Claude Desktop     — re-run with --claude-desktop or --all to configure.');
+      }
+      if (!configureAntigravity) {
+        console.log('Antigravity        — re-run with --antigravity or --all to configure.');
+      }
     } catch (err) {
       error((err as Error).message);
       const templates = listTemplates();
@@ -76,15 +111,11 @@ export function createCli(): Command {
     }
   }
 
-  program
-    .command('setup')
-    .description('Set up a new engram project (scaffold + configure MCP)')
-    .option('-t, --template <type>', 'Template type', 'default')
-    .option('-n, --name <name>', 'Project name', 'My Project')
-    .option('-a, --author <author>', 'Author name', 'Author')
-    .option('-d, --dir <dir>', 'Target directory')
-    .option('--claude-desktop', 'Also configure Claude Desktop app')
-    .action(runSetup);
+  addSetupOptions(
+    program
+      .command('setup')
+      .description('Set up a new engram project (scaffold + configure MCP)'),
+  ).action(runSetup);
 
   // ── status ──────────────────────────────────────────────────────────
   program
