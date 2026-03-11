@@ -272,19 +272,19 @@ installed_at=$TIMESTAMP
 gitignore_mode=$GITIGNORE_MODE
 MANIFEST_EOF
 
-  for f in "${MANIFEST_CREATED[@]}"; do
+  for f in ${MANIFEST_CREATED[@]+"${MANIFEST_CREATED[@]}"}; do
     echo "created=$f" >> "$manifest"
   done
 
-  for f in "${MANIFEST_COPIED[@]}"; do
+  for f in ${MANIFEST_COPIED[@]+"${MANIFEST_COPIED[@]}"}; do
     echo "copied=$f" >> "$manifest"
   done
 
-  for f in "${MANIFEST_BACKED_UP[@]}"; do
+  for f in ${MANIFEST_BACKED_UP[@]+"${MANIFEST_BACKED_UP[@]}"}; do
     echo "backed_up=$f" >> "$manifest"
   done
 
-  for f in "${MANIFEST_SKIPPED[@]}"; do
+  for f in ${MANIFEST_SKIPPED[@]+"${MANIFEST_SKIPPED[@]}"}; do
     echo "skipped=$f" >> "$manifest"
   done
 }
@@ -474,7 +474,8 @@ if $UNINSTALL; then
 fi
 
 # ── Interactive prompts for fields not provided via arguments ──────────────
-if ! $DRY_RUN || [ "$PROJECT_NAME" = "$_UNSET" ]; then
+if ! $DRY_RUN && [ -t 0 ]; then
+  # Interactive terminal — prompt for missing fields
   if [ "$PROJECT_NAME" = "$_UNSET" ]; then
     read -rp "Project name: " PROJECT_NAME
   fi
@@ -487,11 +488,19 @@ if ! $DRY_RUN || [ "$PROJECT_NAME" = "$_UNSET" ]; then
   if [ "$PROJECT_DESC" = "$_UNSET" ]; then
     read -rp "One-line project description: " PROJECT_DESC
   fi
+elif ! $DRY_RUN && ! [ -t 0 ]; then
+  # Non-interactive (CI, piped, scripted) — default optional fields
+  [ "$AUTHOR_EMAIL" = "$_UNSET" ] && AUTHOR_EMAIL=""
+  [ "$PROJECT_DESC" = "$_UNSET" ] && PROJECT_DESC=""
 fi
 
 # ── Validate required fields ─────────────────────────────────────────────
-if [ -z "$PROJECT_NAME" ] || [ -z "$AUTHOR_NAME" ]; then
-  err "Project name and author name are required."
+if [ "$PROJECT_NAME" = "$_UNSET" ] || [ "$AUTHOR_NAME" = "$_UNSET" ]; then
+  if ! [ -t 0 ]; then
+    err "Non-interactive mode requires --name and --author flags."
+  else
+    err "Project name and author name are required."
+  fi
   exit 1
 fi
 
@@ -500,7 +509,7 @@ mkdir -p "$PROJECT_DIR"
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 EMAIL_LINE=""
-if [ -n "$AUTHOR_EMAIL" ]; then
+if [ -n "$AUTHOR_EMAIL" ] && [ "$AUTHOR_EMAIL" != "$_UNSET" ]; then
   EMAIL_LINE=" ($AUTHOR_EMAIL)"
 fi
 
@@ -1102,7 +1111,7 @@ done
 # ── Scoped sed replacements (only engram-created files) ───────────────────
 # These replacements only run on files the installer just created,
 # never on pre-existing project files like CONTRIBUTING.md or CHANGELOG.md.
-if ! $DRY_RUN && [ ${#MANIFEST_CREATED[@]} -gt 0 ]; then
+if ! $DRY_RUN && [ -n "${MANIFEST_CREATED[*]+x}" ]; then
   PROJECT_NAME_ESCAPED=$(printf '%s\n' "$PROJECT_NAME" | sed 's:[&/\]:\\&:g')
   AUTHOR_NAME_ESCAPED=$(printf '%s\n' "$AUTHOR_NAME" | sed 's:[&/\]:\\&:g')
   AUTHOR_EMAIL_ESCAPED=$(printf '%s\n' "$AUTHOR_EMAIL" | sed 's:[&/\]:\\&:g')
@@ -1112,7 +1121,7 @@ if ! $DRY_RUN && [ ${#MANIFEST_CREATED[@]} -gt 0 ]; then
   DIR_BASENAME_ESCAPED=$(printf '%s\n' "$DIR_BASENAME" | sed 's:[&/\]:\\&:g')
   VERSION_ESCAPED=$(printf '%s\n' "$VERSION" | sed 's:[&/\]:\\&:g')
 
-  for relpath in "${MANIFEST_CREATED[@]}"; do
+  for relpath in ${MANIFEST_CREATED[@]+"${MANIFEST_CREATED[@]}"}; do
     filepath="$PROJECT_DIR/$relpath"
     if [ -f "$filepath" ]; then
       sed_inplace "s/PROJECT_NAME_PLACEHOLDER/$PROJECT_NAME_ESCAPED/g" "$filepath"
@@ -1137,14 +1146,14 @@ echo ""
 if $DRY_RUN; then
   info "DRY RUN COMPLETE — no files were created or modified"
   echo ""
-  echo "  Files that would be created: ${#MANIFEST_CREATED[@]}"
+  echo "  Files that would be created: ${#MANIFEST_CREATED[@]}"  # safe: only reached via for-loop guard
   echo ""
   echo "To install for real, run without --dry-run."
   exit 0
 fi
 
 echo "Core files:"
-for f in "${MANIFEST_CREATED[@]}"; do
+for f in ${MANIFEST_CREATED[@]+"${MANIFEST_CREATED[@]}"}; do
   case "$f" in
     CLAUDE.md)        echo "  CLAUDE.md            — Project instructions for Claude" ;;
     AGENTS.md)        echo "  AGENTS.md            — Agent configurations and registry" ;;
@@ -1162,7 +1171,7 @@ echo ""
 
 # Count workflow files created
 WF_COUNT=0
-for f in "${MANIFEST_CREATED[@]}"; do
+for f in ${MANIFEST_CREATED[@]+"${MANIFEST_CREATED[@]}"}; do
   if [[ "$f" == .agents/workflows/* ]]; then
     WF_COUNT=$((WF_COUNT + 1))
   fi
@@ -1173,18 +1182,18 @@ if [ "$WF_COUNT" -gt 0 ]; then
 fi
 
 # Report skipped files
-if [ ${#MANIFEST_SKIPPED[@]} -gt 0 ]; then
+if [ -n "${MANIFEST_SKIPPED[*]+x}" ]; then
   echo "Skipped (already existed):"
-  for f in "${MANIFEST_SKIPPED[@]}"; do
+  for f in ${MANIFEST_SKIPPED[@]+"${MANIFEST_SKIPPED[@]}"}; do
     echo "  $f"
   done
   echo ""
 fi
 
 # Report backed up files
-if [ ${#MANIFEST_BACKED_UP[@]} -gt 0 ]; then
+if [ -n "${MANIFEST_BACKED_UP[*]+x}" ]; then
   echo "Backed up (originals in .engram-backup/):"
-  for f in "${MANIFEST_BACKED_UP[@]}"; do
+  for f in ${MANIFEST_BACKED_UP[@]+"${MANIFEST_BACKED_UP[@]}"}; do
     echo "  $f"
   done
   echo ""
