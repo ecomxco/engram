@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { writeMcpConfig } from './mcp-config.js';
 
 export interface InitOptions {
   template: string;
@@ -21,11 +22,48 @@ function applyPlaceholders(content: string, vars: Record<string, string>): strin
   return result;
 }
 
+/**
+ * Recursively copy files from a source directory to a target directory.
+ * Applies placeholder substitution to text files and makes .sh files executable.
+ */
+function copyTree(
+  srcDir: string,
+  destDir: string,
+  vars: Record<string, string>,
+  created: string[],
+  relPrefix = '',
+): void {
+  if (!existsSync(srcDir)) return;
+
+  for (const entry of readdirSync(srcDir, { withFileTypes: true })) {
+    const srcPath = join(srcDir, entry.name);
+    const relPath = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
+    const destPath = join(destDir, entry.name);
+
+    if (entry.isDirectory()) {
+      mkdirSync(destPath, { recursive: true });
+      copyTree(srcPath, destPath, vars, created, relPath);
+    } else {
+      let content = readFileSync(srcPath, 'utf-8');
+      // Apply placeholders to text files
+      if (/\.(md|html|json|sh|txt)$/.test(entry.name)) {
+        content = applyPlaceholders(content, vars);
+      }
+      writeFileSync(destPath, content, 'utf-8');
+      // Make shell scripts executable
+      if (entry.name.endsWith('.sh')) {
+        chmodSync(destPath, 0o755);
+      }
+      created.push(relPath);
+    }
+  }
+}
+
 export function listTemplates(): string[] {
   const dir = getTemplatesDir();
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
-    .filter(d => d.isDirectory())
+    .filter(d => d.isDirectory() && d.name !== '_common')
     .map(d => d.name);
 }
 
@@ -63,9 +101,13 @@ export function initProject(opts: InitOptions): string {
     created.push(outName);
   }
 
-  // Create .agents/workflows directory
-  const workflowsDir = join(targetDir, '.agents', 'workflows');
-  mkdirSync(workflowsDir, { recursive: true });
+  // Copy shared assets from _common (VISUALIZER.html, scripts, workflows)
+  const commonDir = join(templatesDir, '_common');
+  copyTree(commonDir, targetDir, vars, created);
+
+  // Create .mcp.json for Claude Code auto-discovery
+  writeMcpConfig(targetDir);
+  created.push('.mcp.json');
 
   // Create .gitignore if not present
   if (!existsSync(join(targetDir, '.gitignore'))) {

@@ -10,8 +10,9 @@ import {
   search,
 } from '../core/operations.js';
 import { initProject, listTemplates } from '../core/templates.js';
+import { patchClaudeDesktop } from '../core/mcp-config.js';
 import { startServer } from '../index.js';
-import { error, heading, success, table } from './output.js';
+import { error, heading, success, table, warn } from './output.js';
 
 export function createCli(): Command {
   const program = new Command();
@@ -29,32 +30,61 @@ export function createCli(): Command {
       await startServer();
     });
 
-  // ── init ────────────────────────────────────────────────────────────
+  // ── init (alias for setup) ─────────────────────────────────────────
   program
     .command('init')
-    .description('Scaffold a new engram project')
+    .description('Scaffold a new engram project (alias for setup)')
     .option('-t, --template <type>', 'Template type', 'default')
     .option('-n, --name <name>', 'Project name', 'My Project')
     .option('-a, --author <author>', 'Author name', 'Author')
     .option('-d, --dir <dir>', 'Target directory')
-    .action((opts) => {
-      try {
-        const msg = initProject({
-          template: opts.template,
-          name: opts.name,
-          author: opts.author,
-          dir: opts.dir,
-        });
-        success(msg);
-      } catch (err) {
-        error((err as Error).message);
-        const templates = listTemplates();
-        if (templates.length > 0) {
-          console.log(`Available templates: ${templates.join(', ')}`);
+    .option('--claude-desktop', 'Also configure Claude Desktop app')
+    .action(runSetup);
+
+  // ── setup ─────────────────────────────────────────────────────────
+  function runSetup(opts: { template: string; name: string; author: string; dir?: string; claudeDesktop?: boolean }) {
+    try {
+      const msg = initProject({
+        template: opts.template,
+        name: opts.name,
+        author: opts.author,
+        dir: opts.dir,
+      });
+      success(msg);
+
+      if (opts.claudeDesktop) {
+        const targetDir = opts.dir ?? process.cwd();
+        const result = patchClaudeDesktop(targetDir);
+        if (result.patched) {
+          success(result.message);
+        } else {
+          warn(result.message);
         }
-        process.exit(1);
       }
-    });
+
+      console.log('');
+      heading('Next Steps');
+      console.log('Open this folder in Claude Code — engram activates automatically.');
+      console.log('The .mcp.json file configures the MCP server for you.');
+    } catch (err) {
+      error((err as Error).message);
+      const templates = listTemplates();
+      if (templates.length > 0) {
+        console.log(`Available templates: ${templates.join(', ')}`);
+      }
+      process.exit(1);
+    }
+  }
+
+  program
+    .command('setup')
+    .description('Set up a new engram project (scaffold + configure MCP)')
+    .option('-t, --template <type>', 'Template type', 'default')
+    .option('-n, --name <name>', 'Project name', 'My Project')
+    .option('-a, --author <author>', 'Author name', 'Author')
+    .option('-d, --dir <dir>', 'Target directory')
+    .option('--claude-desktop', 'Also configure Claude Desktop app')
+    .action(runSetup);
 
   // ── status ──────────────────────────────────────────────────────────
   program

@@ -35,21 +35,24 @@ The core insight: **the AI doesn't need to read 50 pages of logs. It needs an in
 ## Quick Start
 
 ```bash
-# Download and run
-curl -O https://raw.githubusercontent.com/ecomxco/engram/main/init-engram.sh
-chmod +x init-engram.sh
-./init-engram.sh
+npx engram-protocol setup --name "My Project"
 ```
 
-Or with arguments:
+That's it. One command creates everything:
+
+- 8 markdown files (STATE.md, ENGRAM.md, CLAUDE.md, etc.)
+- 13 workflow definitions in `.agents/workflows/`
+- Interactive VISUALIZER.html dashboard
+- Dashboard scripts (update-visualizer.sh, engram-watch.sh)
+- `.mcp.json` for automatic MCP server discovery
+
+Open the folder in Claude Code or Cursor — engram activates automatically. No config editing.
+
+For Claude Desktop, add `--claude-desktop` to also configure the desktop app:
 
 ```bash
-./init-engram.sh --name "My Research" --author "Jane" --desc "Exploring emergent systems"
+npx engram-protocol setup --name "My Project" --claude-desktop
 ```
-
-**Safe for existing projects** — the installer backs up any files it would overwrite, never touches files it didn't create, and supports `--dry-run` to preview changes before committing. Run `--uninstall` to cleanly reverse everything.
-
-Then open an AI session in that folder. The AI reads `STATE.md`, picks up where you left off, and follows the protocol automatically.
 
 ---
 
@@ -244,51 +247,44 @@ See [`examples/after-10-sessions/`](examples/after-10-sessions/) for what a real
 
 ## Installation
 
-**Option 1: curl (recommended)**
+### npx (recommended)
+
+```bash
+npx engram-protocol setup --name "My Project" --author "Jane" --template research
+```
+
+No global install needed. Choose a template: `default`, `research`, `software`, `writing`, or `startup`.
+
+### Setup Options
+
+```
+npx engram-protocol setup [OPTIONS]
+
+  -n, --name NAME         Project name (default: "My Project")
+  -a, --author NAME       Author name (default: "Author")
+  -t, --template TYPE     Template type (default: "default")
+  -d, --dir DIR           Target directory (default: current dir)
+  --claude-desktop        Also configure Claude Desktop app
+```
+
+### Global Install
+
+```bash
+npm install -g engram-protocol
+engram setup --name "My Project"
+```
+
+### Alternative: Bash Installer
+
+For environments without Node.js:
 
 ```bash
 curl -O https://raw.githubusercontent.com/ecomxco/engram/main/init-engram.sh
 chmod +x init-engram.sh
-./init-engram.sh
+./init-engram.sh --name "My Project"
 ```
 
-**Option 2: Clone**
-
-```bash
-git clone https://github.com/ecomxco/engram.git
-cd engram
-./init-engram.sh --dir ~/my-project
-```
-
-**Option 3: Manual**
-Copy the files from [`examples/after-10-sessions/`](examples/after-10-sessions/) into your project and fill them in. The architecture is the value, not the script.
-
-### CLI Options
-
-```
-./init-engram.sh [OPTIONS]
-
-  --name NAME       Project name
-  --author NAME     Author name
-  --email EMAIL     Author email (optional)
-  --desc DESC       One-line project description
-  --dir DIR         Target directory (default: current dir)
-  --force           Overwrite existing files without prompting (backs up first)
-  --skip-existing   Skip any files that already exist
-  --dry-run         Preview all changes without touching any files
-  --uninstall       Remove engram files and restore backups
-  --version         Show engram and installer version
-  -h, --help        Show help
-```
-
-### Uninstalling
-
-```bash
-./init-engram.sh --uninstall             # interactive confirmation
-./init-engram.sh --uninstall --force     # no prompt
-```
-
-The uninstaller reads the install manifest (`.engram-manifest`), removes only files engram created, restores any backed-up originals from `.engram-backup/`, and strips engram rules from `.gitignore`. If the manifest is missing, it tells you — it won't guess.
+The bash installer supports `--dry-run`, `--force`, `--skip-existing`, and `--uninstall`.
 
 ---
 
@@ -324,24 +320,30 @@ If your work wraps up in one session, yes. Engram is for projects that span days
 
 ## MCP Server + CLI
 
-Engram also ships as an npm package with a Model Context Protocol (MCP) server and command-line interface. The MCP server gives AI tools direct read/write access to your engram files via structured tool calls.
+The npm package includes a Model Context Protocol (MCP) server that gives AI tools direct read/write access to your engram files via structured tool calls.
 
-### Install
+**Claude Code / Cursor:** The `.mcp.json` file created during setup auto-configures the MCP server. Nothing to do.
 
-```bash
-npm install -g engram-protocol
+**Claude Desktop:** Run `engram setup --claude-desktop` or add manually:
+
+```json
+{
+  "mcpServers": {
+    "engram": {
+      "command": "npx",
+      "args": ["-y", "engram-protocol", "serve"],
+      "env": { "ENGRAM_PROJECT_DIR": "/path/to/your/project" }
+    }
+  }
+}
 ```
 
-Or use without installing:
-
-```bash
-npx engram-protocol init --name "My Project" --template research
-```
+The server exposes 11 tools (`engram_status`, `engram_log_exchange`, `engram_checkpoint`, etc.) and 4 resources (`engram://state`, `engram://summary`, `engram://decisions`, `engram://agents`).
 
 ### CLI Commands
 
 ```bash
-engram init [--template TYPE]   # Scaffold a new project (default, research, software, writing, startup)
+engram setup [--template TYPE]  # Scaffold a complete project with MCP config
 engram serve                    # Start the MCP server (stdio transport)
 engram status                   # Print a summary of current project state
 engram checkpoint               # Sync all files: log, summary, state, index
@@ -351,26 +353,6 @@ engram reconcile                # Rebuild ENGRAM.md from the full log
 engram handoff                  # Generate HANDOFF.md for fast context restore
 engram rotate                   # Archive and rotate the log
 ```
-
-### MCP Server Setup
-
-Add to your Claude Desktop or MCP-compatible client config:
-
-```json
-{
-  "mcpServers": {
-    "engram": {
-      "command": "npx",
-      "args": ["-y", "engram-protocol", "serve"],
-      "env": {
-        "ENGRAM_PROJECT_DIR": "/path/to/your/project"
-      }
-    }
-  }
-}
-```
-
-The server exposes 11 tools (`engram_status`, `engram_log_exchange`, `engram_checkpoint`, etc.) and 4 resources (`engram://state`, `engram://summary`, `engram://decisions`, `engram://agents`).
 
 ### Templates
 
