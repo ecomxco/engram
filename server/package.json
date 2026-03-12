@@ -1,6 +1,6 @@
 {
   "name": "engram-protocol",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "MCP server and CLI for the Engram AI memory protocol — persistent context across sessions, devices, and agents",
   "type": "module",
   "bin": {

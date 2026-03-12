@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { homedir, platform } from 'node:os';
 
 const MCP_CONFIG = {
@@ -58,9 +58,6 @@ export function patchClaudeDesktop(projectDir: string): { patched: boolean; mess
   servers.engram = {
     command: 'npx',
     args: ['-y', 'engram-protocol', 'serve'],
-    env: {
-      ENGRAM_PROJECT_DIR: resolve(projectDir),
-    },
   };
 
   config.mcpServers = servers;
@@ -89,9 +86,6 @@ export function patchAntigravity(projectDir: string): { patched: boolean; messag
         engram: {
           command: 'npx',
           args: ['-y', 'engram-protocol', 'serve'],
-          env: {
-            ENGRAM_PROJECT_DIR: resolve(projectDir),
-          },
         },
       },
     };
@@ -115,9 +109,6 @@ export function patchAntigravity(projectDir: string): { patched: boolean; messag
   servers.engram = {
     command: 'npx',
     args: ['-y', 'engram-protocol', 'serve'],
-    env: {
-      ENGRAM_PROJECT_DIR: resolve(projectDir),
-    },
   };
 
   config.mcpServers = servers;
