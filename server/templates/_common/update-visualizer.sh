@@ -106,7 +106,10 @@ if state_text:
 
 # Fallback: count session headers in ENGRAM-LOG.md if STATE.md counter is unset
 if total_sessions == 0 and log_text:
-    total_sessions = len(re.findall(r'^### Session \d+', log_text, re.MULTILINE))
+    header_count = len(re.findall(r'^### Session \d+', log_text, re.MULTILINE))
+    # Also count YAML turn entries as a fallback (each - timestamp: is one turn)
+    yaml_count = len(re.findall(r'^- timestamp:', log_text, re.MULTILINE))
+    total_sessions = max(header_count, 1 if yaml_count > 0 else 0)
 
 print('  Parsing STATE.md...')
 print(f'    Project: {project_name}')
@@ -122,6 +125,14 @@ session_pattern = re.compile(
 
 # Known AI agent name pattern — match base name before any parenthetical
 known_ai = re.compile(r'\b(Claude|ChatGPT|GPT-[0-9]|Gemini|Grok|Llama|Mistral|Copilot|Antigravity|Aria|Cursor|Cursor AI)\b', re.I)
+
+# YAML turn pattern — matches entries like: - timestamp: "2026-03-12 05:10 UTC"
+yaml_turn_pattern = re.compile(
+    r'^- timestamp:\s*["\']?(\d{4}-\d{2}-\d{2}[^"\']*)["\']?\s*$',
+    re.MULTILINE
+)
+yaml_agent_pattern = re.compile(r'^\s+agent:\s*["\']?([^"\']+)["\']?\s*$', re.MULTILINE)
+yaml_response_pattern = re.compile(r'^\s+response:\s*\|\s*\n((?:\s{4,}.*\n)*)', re.MULTILINE)
 
 matches = list(session_pattern.finditer(log_text))
 for i, m in enumerate(matches):
@@ -139,38 +150,53 @@ for i, m in enumerate(matches):
     end   = matches[i + 1].start() if i + 1 < len(matches) else len(log_text)
     chunk = log_text[start:end]
 
-    # Summary: prefer first AI response line (quoted "> ") that is substantive
-    # Skip very short quoted lines (like "reconcile now" echoes, single-word acks)
     summary = f'Session {sid}'
-    # Find all quoted lines and pick the first one that's from an AI (after an AI attribution)
-    lines = chunk.split('\n')
-    last_speaker_is_ai = False
-    for line in lines:
-        # Attribution line: **[HH:MM UTC] Name:**
-        attr_m = re.match(r'\*\*\[\d+:\d+ UTC\]\s*([^:*]+):', line)
-        if attr_m:
-            speaker = strip_model_version(attr_m.group(1).strip())
-            last_speaker_is_ai = bool(known_ai.search(speaker))
-            continue
-        # Quoted response line
-        if line.startswith('> ') and last_speaker_is_ai:
-            candidate = line[2:].replace('**', '').strip()
-            # Skip trivial lines
-            if len(candidate) >= 20 and not re.match(r'^(Yes|No|On it|Done|Starting|Running|Great|Sure|Perfect)', candidate):
-                summary = candidate[:120]
-                break
-    # If still no good AI summary, fall back to any quoted line
-    if summary == f'Session {sid}':
-        qm = re.search(r'^> (.{20,})', chunk, re.MULTILINE)
-        summary = qm.group(1).replace('**', '').strip()[:120] if qm else summary
-
-    # Collect AI agent names — strip model version for display
     agent_names = set()
-    for am in re.finditer(r'\*\*\[\d+:\d+ UTC\]\s*([^:*]+):', chunk):
-        raw = am.group(1).strip()
-        base = strip_model_version(raw)
-        if known_ai.search(base):
-            agent_names.add(base)
+
+    # Detect format: YAML entries (- timestamp:) vs conversational (**[HH:MM UTC] Name:**)
+    has_yaml = bool(yaml_turn_pattern.search(chunk))
+    has_conv = bool(re.search(r'\*\*\[\d+:\d+ UTC\]', chunk))
+
+    if has_yaml:
+        # Parse YAML entries for agents and summary
+        for am in yaml_agent_pattern.finditer(chunk):
+            raw = am.group(1).strip()
+            base = strip_model_version(raw)
+            if known_ai.search(base):
+                agent_names.add(base)
+        # Summary from first response block
+        resp_m = yaml_response_pattern.search(chunk)
+        if resp_m:
+            resp_lines = resp_m.group(1).strip().split('\n')
+            for line in resp_lines:
+                candidate = line.strip()
+                if len(candidate) >= 20 and not re.match(r'^(Yes|No|On it|Done|Starting|Running|Great|Sure|Perfect)', candidate):
+                    summary = candidate[:120]
+                    break
+    else:
+        # Legacy conversational format: **[HH:MM UTC] Name:**
+        lines = chunk.split('\n')
+        last_speaker_is_ai = False
+        for line in lines:
+            attr_m = re.match(r'\*\*\[\d+:\d+ UTC\]\s*([^:*]+):', line)
+            if attr_m:
+                speaker = strip_model_version(attr_m.group(1).strip())
+                last_speaker_is_ai = bool(known_ai.search(speaker))
+                continue
+            if line.startswith('> ') and last_speaker_is_ai:
+                candidate = line[2:].replace('**', '').strip()
+                if len(candidate) >= 20 and not re.match(r'^(Yes|No|On it|Done|Starting|Running|Great|Sure|Perfect)', candidate):
+                    summary = candidate[:120]
+                    break
+        if summary == f'Session {sid}':
+            qm = re.search(r'^> (.{20,})', chunk, re.MULTILINE)
+            summary = qm.group(1).replace('**', '').strip()[:120] if qm else summary
+        for am in re.finditer(r'\*\*\[\d+:\d+ UTC\]\s*([^:*]+):', chunk):
+            raw = am.group(1).strip()
+            base = strip_model_version(raw)
+            if known_ai.search(base):
+                agent_names.add(base)
+
     if not agent_names:
         agent_names.add('Claude')
 
@@ -539,53 +565,101 @@ def parse_log_to_html(log_text):
         mode_cls_map = {'brainstorm':'tag-purple','implementation':'tag-teal','review':'tag-amber','admin':'tag-muted'}
         mode_cls = mode_cls_map.get(smode_base, 'tag-muted')
 
-        # Split block into individual turns
-        # A turn starts with **[HH:MM UTC] Name:** on its own line
-        turn_pattern = re.compile(r'^\*\*\[(\d{2}:\d{2}(?::\d{2})?\s*UTC)\]\s*([^:*]+?):\*\*', re.MULTILINE)
-        turn_matches = list(turn_pattern.finditer(block))
+        # Convert content: escape HTML but preserve line breaks and inline code
+        def render_content(text):
+            text = text.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+            text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
+            text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
+            paras = re.split(r'\n{2,}', text)
+            return ''.join(f'<p>{p.replace(chr(10), "<br>")}</p>' for p in paras if p.strip())
+
+        # Detect format: YAML (- timestamp:) or conversational (**[HH:MM UTC] Name:**)
+        has_yaml_turns = bool(re.search(r'^- timestamp:', block, re.MULTILINE))
+        has_conv_turns = bool(re.search(r'\*\*\[\d+:\d+ UTC\]', block))
 
         turns_html = []
-        for i, tm in enumerate(turn_matches):
-            ts       = tm.group(1).strip()
-            speaker  = strip_model_version(tm.group(2).strip())
-            # Content: everything from after the ** line to the next turn or end of block
-            content_start = tm.end()
-            content_end   = turn_matches[i+1].start() if i+1 < len(turn_matches) else len(block)
-            raw_content   = block[content_start:content_end].strip()
 
-            # Strip leading '> ' quote markers from each line
-            content_lines = []
-            for line in raw_content.split('\n'):
-                if line.startswith('> '):
-                    content_lines.append(line[2:])
-                elif line.startswith('>'):
-                    content_lines.append(line[1:])
-                else:
-                    content_lines.append(line)
-            content = '\n'.join(content_lines).strip()
+        if has_yaml_turns:
+            # Parse YAML entries: split on "- timestamp:" boundaries
+            yaml_entries = re.split(r'(?=^- timestamp:)', block, flags=re.MULTILINE)
+            for entry in yaml_entries:
+                entry = entry.strip()
+                if not entry.startswith('- timestamp:'):
+                    continue
+                ts_m = re.search(r'^- timestamp:\s*["\']?([^"\']+)["\']?', entry)
+                ag_m = re.search(r'^\s+agent:\s*["\']?([^"\']+)["\']?', entry, re.MULTILINE)
+                # Extract prompt (indented block after "prompt: |")
+                pr_m = re.search(r'^\s+prompt:\s*\|\s*\n((?:\s{4,}.*\n)*)', entry, re.MULTILINE)
+                # Extract response (indented block after "response: |")
+                rp_m = re.search(r'^\s+response:\s*\|\s*\n((?:\s{4,}.*\n)*)', entry, re.MULTILINE)
 
-            # Detect if human or AI speaker
-            is_ai = bool(known_ai.search(speaker))
-            bubble_cls = 'turn-ai' if is_ai else 'turn-human'
-            speaker_cls = 'turn-speaker-ai' if is_ai else 'turn-speaker-human'
+                ts = ts_m.group(1).strip() if ts_m else ''
+                # Extract just time portion for display
+                time_part = re.search(r'(\d{2}:\d{2}(?::\d{2})?\s*UTC)', ts)
+                ts_display = time_part.group(1) if time_part else ts
 
-            # Convert content: escape HTML but preserve line breaks and inline code
-            def render_content(text):
-                # Escape HTML
-                text = text.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
-                # Inline code: `code`
-                text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
-                # Bold: **text**
-                text = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', text)
-                # Paragraph breaks
-                paras = re.split(r'\n{2,}', text)
-                return ''.join(f'<p>{p.replace(chr(10), "<br>")}</p>' for p in paras if p.strip())
+                agent_raw = ag_m.group(1).strip() if ag_m else 'Unknown'
+                agent = strip_model_version(agent_raw)
 
-            rendered = render_content(content)
-            if not rendered:
-                continue
+                # Render prompt as human turn
+                if pr_m:
+                    prompt_text = '\n'.join(l.strip() for l in pr_m.group(1).rstrip().split('\n'))
+                    rendered = render_content(prompt_text)
+                    if rendered:
+                        turns_html.append(f'''<div class="turn turn-human">
+  <div class="turn-meta">
+    <span class="turn-speaker-human">User</span>
+    <span class="turn-ts">{esc(ts_display)}</span>
+    <button class="copy-btn" data-copy="{prompt_text.replace(chr(34), '&quot;').replace(chr(10), '&#10;')}" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body">{rendered}</div>
+</div>''')
 
-            turns_html.append(f'''<div class="turn {bubble_cls}">
+                # Render response as AI turn
+                if rp_m:
+                    resp_text = '\n'.join(l.strip() for l in rp_m.group(1).rstrip().split('\n'))
+                    rendered = render_content(resp_text)
+                    if rendered:
+                        turns_html.append(f'''<div class="turn turn-ai">
+  <div class="turn-meta">
+    <span class="turn-speaker-ai">{esc(agent)}</span>
+    <span class="turn-ts">{esc(ts_display)}</span>
+    <button class="copy-btn" data-copy="{resp_text.replace(chr(34), '&quot;').replace(chr(10), '&#10;')}" title="Copy to clipboard" aria-label="Copy">Copy</button>
+  </div>
+  <div class="turn-body">{rendered}</div>
+</div>''')
+
+        elif has_conv_turns:
+            # Legacy conversational format: **[HH:MM UTC] Name:**
+            turn_pattern = re.compile(r'^\*\*\[(\d{2}:\d{2}(?::\d{2})?\s*UTC)\]\s*([^:*]+?):\*\*', re.MULTILINE)
+            turn_matches = list(turn_pattern.finditer(block))
+
+            for i, tm in enumerate(turn_matches):
+                ts       = tm.group(1).strip()
+                speaker  = strip_model_version(tm.group(2).strip())
+                content_start = tm.end()
+                content_end   = turn_matches[i+1].start() if i+1 < len(turn_matches) else len(block)
+                raw_content   = block[content_start:content_end].strip()
+
+                content_lines = []
+                for line in raw_content.split('\n'):
+                    if line.startswith('> '):
+                        content_lines.append(line[2:])
+                    elif line.startswith('>'):
+                        content_lines.append(line[1:])
+                    else:
+                        content_lines.append(line)
+                content = '\n'.join(content_lines).strip()
+
+                is_ai = bool(known_ai.search(speaker))
+                bubble_cls = 'turn-ai' if is_ai else 'turn-human'
+                speaker_cls = 'turn-speaker-ai' if is_ai else 'turn-speaker-human'
+
+                rendered = render_content(content)
+                if not rendered:
+                    continue
+
+                turns_html.append(f'''<div class="turn {bubble_cls}">
   <div class="turn-meta">
     <span class="{speaker_cls}">{esc(speaker)}</span>
     <span class="turn-ts">{esc(ts)}</span>

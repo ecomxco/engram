@@ -1,4 +1,5 @@
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { basename, join } from 'node:path';
 import { writeMcpConfig } from './mcp-config.js';
 
@@ -129,6 +130,16 @@ export function initProject(opts: InitOptions): string {
   if (!existsSync(join(targetDir, '.gitignore'))) {
     writeFileSync(join(targetDir, '.gitignore'), '.engram-lock\n', 'utf-8');
     created.push('.gitignore');
+  }
+
+  // Run update-visualizer.sh to generate initial VISUALIZER.html with real project data
+  const vizScript = join(targetDir, 'update-visualizer.sh');
+  if (existsSync(vizScript)) {
+    try {
+      execSync(`bash "${vizScript}"`, { cwd: targetDir, stdio: 'ignore', timeout: 15_000 });
+    } catch {
+      // Non-fatal — visualizer can be regenerated manually
+    }
   }
 
   return `Engram project "${opts.name}" initialized in ${targetDir}\nTemplate: ${opts.template}\nFiles created: ${created.join(', ')}`;
