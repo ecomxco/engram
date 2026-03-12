@@ -1,20 +1,33 @@
 # ENGRAM-LOG.md — Verbatim Session Log
 
 ## Purpose
-Raw, timestamped log of every prompt/response exchange. Append-only. For the processed summary, see ENGRAM.md.
+Append-only log of all sessions formatted heavily for ML/LLM structural efficiency. Every entry captures prompt veracity, semantic gaps, logic confidence, and explicit deliverables.
 
-**Last Updated:** DATE_PLACEHOLDER
+**Autonomic Action Agents:** You MUST explicitly append to this file formatted exactly as below during your run loop, *before* returning control.
+
+## Entry Format (Structured Action Log)
+
+All logs MUST be written in ML-structured YAML.
+
+```yaml
+- timestamp: "YYYY-MM-DD HH:MM UTC"
+  turn: [Turn Integer]
+  agent: "[Agent Name]"
+  brand_persona: "[Mapped Persona or 'None']"
+  confidence: [0.0 - 1.0]
+  prompt: |
+    [Exact prompt text here, verbatim]
+  response: |
+    [Exact response text here, verbatim]
+  deliverables:
+    - "[List of files created/modified]"
+  gaps_identified:
+    - "[List of assumptions, unsaid risks, or blindspots]"
+```
+
+## Log Rotation
+Rotate when this file exceeds ~50KB or 15 sessions, whichever comes first. Rename to ENGRAM-LOG-NNN.md and start fresh. The processed summary (ENGRAM.md) carries forward.
 
 ---
 
-### Session 1 — DATE_PLACEHOLDER — Mode: admin
-
-- timestamp: "DATE_PLACEHOLDER 00:00 UTC"
-  turn: 0
-  agent: "Setup"
-  confidence: 1.0
-  prompt: |
-    Initialize engram protocol for PROJECT_NAME_PLACEHOLDER.
-  response: |
-    Project initialized with engram protocol infrastructure.
-    Files created: STATE.md, ENGRAM-LOG.md, ENGRAM.md, DECISIONS.md, AGENTS.md, ENGRAM-INDEX.md.
+*No sessions yet.*

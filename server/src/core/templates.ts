@@ -1,16 +1,21 @@
 import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { writeMcpConfig } from './mcp-config.js';
 
 export interface InitOptions {
   template: string;
   name: string;
   author: string;
+  email?: string;
+  desc?: string;
   dir?: string;
 }
 
 function getTemplatesDir(): string {
-  // Templates are bundled alongside the source
+  // From compiled dist/src/core/ we need ../../.. to reach the package root.
+  // From source src/core/ we only need ../.. — try compiled path first.
+  const fromCompiled = join(import.meta.dirname, '..', '..', '..', 'templates');
+  if (existsSync(fromCompiled)) return fromCompiled;
   return join(import.meta.dirname, '..', '..', 'templates');
 }
 
@@ -84,10 +89,21 @@ export function initProject(opts: InitOptions): string {
 
   mkdirSync(targetDir, { recursive: true });
 
+  const now = new Date();
+  const dateShort = now.toISOString().slice(0, 10);
+  const timestamp = now.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+
   const vars: Record<string, string> = {
     PROJECT_NAME_PLACEHOLDER: opts.name,
     AUTHOR_NAME_PLACEHOLDER: opts.author,
-    DATE_PLACEHOLDER: new Date().toISOString().slice(0, 10),
+    AUTHOR_PLACEHOLDER: opts.author,
+    AUTHOR_EMAIL_PLACEHOLDER: opts.email ?? '',
+    PROJECT_DESC_PLACEHOLDER: opts.desc ?? '',
+    DATE_PLACEHOLDER: dateShort,
+    DATE_SHORT_PLACEHOLDER: dateShort,
+    TIMESTAMP_PLACEHOLDER: timestamp,
+    DIR_BASENAME_PLACEHOLDER: basename(targetDir),
+    VERSION_PLACEHOLDER: '4.0',
   };
 
   const files = readdirSync(templateDir).filter(f => f.endsWith('.tmpl'));

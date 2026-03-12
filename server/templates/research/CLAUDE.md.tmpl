@@ -1,53 +1,160 @@
-# CLAUDE.md — Project Instructions
+# CLAUDE.md — Project Instructions for Claude
 
 ## Project: PROJECT_NAME_PLACEHOLDER
-
 **Primary Author:** AUTHOR_NAME_PLACEHOLDER
-**Created:** DATE_PLACEHOLDER
-**Infrastructure Version:** 4.0
+**Computational Analysis:** Claude
+**Created:** DATE_SHORT_PLACEHOLDER
+**Infrastructure Version:** VERSION_PLACEHOLDER
 
 ---
 
 ## On Every Session Start
 
-**Context budget:** Total tokens read at session start must not exceed **4,000 tokens**. Read at most 2 files.
+## MANDATORY FIRST STEP FOR ALL AGENTS
+1. **Read `STATE.md` first before performing any tasks or analyzing any other files.**
+   `STATE.md` contains the active Engram session context, current state, active threads, and blockers across all devices and AI platforms.
+2. **Verify your presence in `AGENTS.md`.**
+   If this is your first time interacting with this project, you MUST add yourself to the `Agent Registry` in `AGENTS.md` before taking action.
 
-1. **Read STATE.md first.** It contains the current project state, active threads, and context needed for continuity.
-2. **Read ENGRAM.md** for the processed summary of all brainstorming sessions.
-3. **Do NOT read ENGRAM-LOG.md at session start.** Use ENGRAM-INDEX.md for targeted lookups.
-4. **Announce your understanding** of the current state so the author can correct any drift.
+## AUTONOMIC LOGGING PROTOCOL
+Unlike chat interfaces that auto-log the UI, **Autonomic Action Agents** (like Antigravity) DO NOT naturally log individual messages to files without explicit instruction.
+If you are an agent capable of executing bash commands or editing files autonomously during empty turns, you MUST:
+1. Treat `ENGRAM-LOG.md` as an attached database table for your session.
+2. Directly append the user's prompt and your substantive response to `ENGRAM-LOG.md` internally during your tool run loop, treating it as a required step before handing control back to the user.
+
+## SILENT SYNC PROTOCOL (Background Indexing)
+To make Engram work without manual updates, all agents must adhere to the **State Manifest tracking header** located at the top of `STATE.md` (e.g., `current_turn`, `last_sync_turn`, `sync_threshold`).
+1. **Increment:** Add +1 to `current_turn` in `STATE.md` on every single reply you generate.
+2. **Evaluate:** If `current_turn - last_sync_turn >= sync_threshold`, you are **REQUIRED** to execute a background sync BEFORE answering the user's prompt.
+3. **Execution (Chat UI Agents like Claude):** When the threshold is met, you must read `ENGRAM-LOG.md`, update `ENGRAM.md`, `DECISIONS.md`, and `ENGRAM-INDEX.md`. Update `last_sync_turn` in `STATE.md`, and output a brief silent XML block (`<engram_sync>Updated...</engram_sync>`) at the start of your response.
+4. **Execution (Autonomic Agents like Antigravity):** Your `autonomic-engram-logger` workflow will handle this threshold logic automatically.
+
+---
+
+## Brainstorming Protocol
+
+When AUTHOR_PLACEHOLDER initiates a brainstorming session:
+
+1. **Log the prompt verbatim** — Copy the exact prompt into `ENGRAM-LOG.md` as a YAML object. Tag with the session mode.
+2. **Generate the response** — Think, research, compute, create files as needed.
+3. **Evaluate the gap** — Identify any blindspots, unmet constraints, or necessary assumptions. Assign your logic a confidence score (0.0 - 1.0).
+4. **Log the response verbatim** — Copy the full response (including explicit file deliverables) into the YAML object in `ENGRAM-LOG.md`.
+
+**Important:** Steps 5-6 below are NOT required after every single exchange. They happen automatically at the Threshold Sync points.
+
+5. **Update ENGRAM.md & ENGRAM-INDEX.md** — Distill the log to update the actionable summary: tasks, decisions, objections, and the Table of Contents pointer.
+6. **Update STATE.md** — Reflect any changes to project state, active threads, or the YAML tracker.
+
+### ML-Structured Logging Rules
+
+- **Never paraphrase prompts or responses when logging.** Capture exact context.
+- Every log entry must adhere exactly to the YAML schema specified in `ENGRAM-LOG.md`.
+- Explicitly list any deliverables or edited files.
 
 ---
 
 ## Quick Commands
 
 | Command | What It Does |
-| --- | --- |
+|---------|-------------|
 | **"checkpoint"** | Sync all docs: log, summary, and state |
-| **"status"** | Read STATE.md, give a concise summary |
-| **"reconcile now"** | Rebuild ENGRAM.md from the full log |
+| **"status"** / **"where are we"** | Read STATE.md, give a concise 4-8 line summary of current state |
+| **"reconcile now"** | Immediately rebuild ENGRAM.md from the full log |
+
+Aliases: "update docs", "process session", "sync state" all trigger a checkpoint.
 
 ---
 
-## Core Principles
+## Checkpoint Protocol
 
-- **Preserve everything.** The log is append-only.
-- **Separate raw from processed.** ENGRAM-LOG.md is truth. ENGRAM.md is the working summary.
-- **State is portable.** STATE.md must contain everything needed to resume — but nothing more.
-- **Be honest.** Flag problems and weaknesses clearly.
+AUTHOR_PLACEHOLDER can trigger a checkpoint at any time using the commands above.
+
+When a checkpoint is triggered:
+
+1. Append any unlogged exchanges to ENGRAM-LOG.md
+2. Update ENGRAM.md with new items grouped by workstream
+3. Update STATE.md — especially "What Just Happened" and "Active Threads"
+4. Confirm: "Log, summary, and state files updated."
+
+### End-of-Session Checklist
+
+At the end of every session (when AUTHOR_PLACEHOLDER says goodbye, ends the conversation, or explicitly closes out), you MUST:
+
+1. Append any unlogged prompt/response pairs to ENGRAM-LOG.md
+2. Update ENGRAM.md with new actionable items, decisions, and questions
+3. Update STATE.md — "What Just Happened" (last 2 sessions max), "Active Threads", and session counter
+4. Confirm to AUTHOR_PLACEHOLDER: **"Session [N] complete. Log, summary, and state updated."**
+
+If you are unable to complete any step, say so explicitly.
+
+---
+
+## Periodic Reconciliation
+
+**Every 5 sessions**, regenerate ENGRAM.md from scratch using ENGRAM-LOG.md as the source of truth. This prevents drift between the log and the summary. Announce when reconciliation is due.
+
+AUTHOR_PLACEHOLDER can also force an immediate reconciliation at any time by saying **"reconcile now"**.
+
+---
+
+## STATE.md Discipline
+
+STATE.md must stay focused and compact. It is NOT a history file.
+
+**STATE.md should contain:**
+- What happened in the last 1-2 sessions (not further back)
+- Currently active threads/workstreams
+- Current priorities and blockers
+- Key context any agent needs right now
+
+**STATE.md should NOT contain:**
+- Full session history (that belongs in the log)
+- Complete file inventories (keep to actively-relevant files only)
+- Resolved decisions (those belong in DECISIONS.md)
+
+**Size ceiling:** If STATE.md exceeds ~100 lines, prune it. Move historical content to the log or DECISIONS.md.
+
+---
+
+## Session Modes
+
+Tag every log entry with one of these modes:
+
+| Mode | Use When |
+|------|----------|
+| `brainstorm` | Generating ideas, exploring options, open-ended thinking |
+| `implementation` | Writing code, creating files, building artifacts |
+| `review` | Evaluating work, cross-model review, critique sessions |
+| `admin` | Updating docs, reconciliation, infrastructure maintenance |
 
 ---
 
 ## File Structure
 
-```text
-PROJECT_NAME_PLACEHOLDER/
-├── CLAUDE.md              ← Project instructions for all agents
-├── STATE.md               ← Current project state (READ FIRST)
-├── ENGRAM-LOG.md          ← Verbatim prompt/response log (append-only)
-├── ENGRAM-INDEX.md        ← Tag map for targeted log retrieval
-├── ENGRAM.md              ← Processed actionable summary
-├── DECISIONS.md           ← Decision log with rationale
-├── AGENTS.md              ← Agent configurations
-└── README.md              ← Project overview
 ```
+DIR_BASENAME_PLACEHOLDER/
+├── CLAUDE.md                  ← You are here. Project instructions for Claude.
+├── AGENTS.md                  ← Agent-specific configurations and delegation rules.
+├── README.md                  ← Project overview for human readers.
+├── STATE.md                   ← Current project state (Contains State Manifest Header). READ FIRST.
+├── ENGRAM-LOG.md              ← Verbatim prompt/response log. Append-only YAML format.
+├── ENGRAM-INDEX.md            ← High-density Table of Contents. Search this before reading LOGs.
+├── ENGRAM.md                  ← Processed actionable summary of all sessions.
+├── DECISIONS.md               ← Decision log with rationale and timestamps.
+├── VISUALIZER.html            ← Interactive project dashboard — open in any browser.
+├── update-visualizer.sh       ← Regenerates VISUALIZER.html from live engram data.
+├── engram-watch.sh            ← Background watcher: auto-updates dashboard on file changes.
+├── .agents/workflows/         ← Autonomic agent scripts (e.g., autonomic-engram-logger.md)
+└── .gitignore                 ← Git ignore rules.
+```
+
+---
+
+## Core Principles
+
+- **Preserve everything.** Nothing from a brainstorming session should be lost. The log is append-only.
+- **Separate raw from processed.** ENGRAM-LOG.md is the source of truth. ENGRAM.md is the working summary.
+- **State is portable.** STATE.md must contain everything needed to resume work on any device — but nothing more. Keep it lean.
+- **Be honest.** Flag problems, circularities, and weaknesses as clearly as strengths. AUTHOR_PLACEHOLDER values intellectual honesty over cheerleading.
+- **Label claim levels.** Always distinguish: established fact, working hypothesis, conjecture, open question.
+- **Attribute everything.** Every log entry is tagged with the agent/model that produced it and the session mode.

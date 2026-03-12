@@ -1,23 +1,30 @@
-# ENGRAM-INDEX.md — Lookup Index
+# ENGRAM-INDEX.md — Context Retrieval Index
 
 ## Purpose
-Quick-reference index for targeted log retrieval. Each entry links a tag to a specific log timestamp so you can jump directly to the relevant exchange without reading the full log.
+This file prevents context-window blowout. It acts as a high-density "Table of Contents" mapping specific decisions, deliverables, and topics to exact timestamps and turns in `ENGRAM-LOG.md`.
+**Do not feed `ENGRAM-LOG.md` directly into a prompt.** Instead, an AI should search this index to find exactly which turn it needs to read, and then use `grep_search` to pull only the relevant YAML block.
 
-**Last Updated:** DATE_PLACEHOLDER
-**Sessions Indexed:** 1
-
----
-
-## How to Use This Index
-
-Format: `[tag]: TIMESTAMP — Session N, turn T — description`
-
-To retrieve: search ENGRAM-LOG.md for the exact timestamp.
+**Last Updated:** TIMESTAMP_PLACEHOLDER
+**Indexed Turns:** 0
 
 ---
 
-### Setup
+## Semantic Search Tags
 
-```
-[init]: DATE_PLACEHOLDER 00:00 UTC — Session 1, turn 0 — Project initialized with engram protocol
-```
+| Tag | Turns | Description |
+|---|---|---|
+| `[architecture]` | 1 | Initial setup |
+
+---
+
+## Deliverable Index
+
+| File / Deliverable | Created / Modified | Notes |
+|---|---|---|
+| `ENGRAM-INDEX.md` | Initial | Instantiated structural index |
+
+---
+
+## Blindspots & Gaps Identified
+
+*No gaps indexed yet.*

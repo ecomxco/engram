@@ -35,6 +35,8 @@ export function createCli(): Command {
     template: string;
     name: string;
     author: string;
+    email?: string;
+    desc?: string;
     dir?: string;
     claudeDesktop?: boolean;
     antigravity?: boolean;
@@ -46,6 +48,8 @@ export function createCli(): Command {
       .option('-t, --template <type>', 'Template type', 'default')
       .option('-n, --name <name>', 'Project name', 'My Project')
       .option('-a, --author <author>', 'Author name', 'Author')
+      .option('-e, --email <email>', 'Author email')
+      .option('--desc <description>', 'One-line project description')
       .option('-d, --dir <dir>', 'Target directory')
       .option('--claude-desktop', 'Also configure Claude Desktop app')
       .option('--antigravity', 'Also configure Antigravity IDE')
@@ -66,6 +70,8 @@ export function createCli(): Command {
         template: opts.template,
         name: opts.name,
         author: opts.author,
+        email: opts.email,
+        desc: opts.desc,
         dir: opts.dir,
       });
       success(msg);

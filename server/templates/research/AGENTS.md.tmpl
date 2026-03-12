@@ -1,12 +1,56 @@
 # AGENTS.md — Agent Configuration
 
 ## Project: PROJECT_NAME_PLACEHOLDER
-**Last Updated:** DATE_PLACEHOLDER
+**Last Updated:** TIMESTAMP_PLACEHOLDER
+
+---
+
+## Primary Agent: Claude (Anthropic)
+
+**Role:** Computational analyst, brainstorm partner, documentation system maintainer.
+
+**Constraints:**
+- Knowledge cutoff: see agent's system prompt (changes with model updates; always search for anything beyond the stated cutoff)
+- Cannot run persistent background processes between sessions
+- Relies on STATE.md for continuity across sessions and devices
+- Log verbatim fidelity is best-effort, not guaranteed — flag any failures explicitly
+
+**Capabilities to verify periodically:**
+- Web search availability
+- File creation and editing
+- Code execution
+- Image generation/analysis
+
+*When agent capabilities change (new model version, new tools), update this section.*
 
 ---
 
 ## Agent Registry
 
+Track every agent/model used in this project. Add rows as new agents participate.
+
 | Agent | Provider | First Used | Notes |
 |-------|----------|------------|-------|
-| Setup | engram-protocol | DATE_PLACEHOLDER | Initial project scaffolding |
+| Claude | Anthropic | DATE_SHORT_PLACEHOLDER | Primary agent |
+
+---
+
+## Multi-Agent Review Protocol
+
+When sending work for cross-platform review:
+
+1. **Before:** Log the review request in ENGRAM-LOG.md with the version sent and the prompt used. Tag as mode: `review`.
+2. **After:** Log the full review response verbatim. Tag with agent name, model version, and timestamp.
+3. **Process:** Update ENGRAM.md with extracted issues, categorized by severity (P0/P1/P2).
+4. **Resolve:** For each issue, document the response (adopted, rejected with rationale, deferred) in DECISIONS.md.
+
+---
+
+## Session Handoff Protocol
+
+When switching devices or starting a new session with any agent:
+
+1. Agent reads STATE.md to restore context.
+2. Agent reads ENGRAM.md for the current actionable summary.
+3. Agent reads ENGRAM-LOG.md only if deeper context is needed for a specific thread.
+4. Agent announces what it understands the current state to be, so AUTHOR_PLACEHOLDER can correct any drift.

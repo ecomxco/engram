@@ -1,56 +1,68 @@
 ---
-current_turn: 0
-last_sync_turn: 0
+last_sync_turn: 1
+current_turn: 1
 sync_threshold: 5
 ---
-
 # STATE.md — Current Research State
 
-**Last Updated:** DATE_PLACEHOLDER
-**Updated By:** PROJECT_NAME_PLACEHOLDER Setup
+## Purpose
+Read this file FIRST at the start of every new session. It contains the current active state — not history.
+
+**Last Updated:** TIMESTAMP_PLACEHOLDER
+**Updated By:** engram-protocol setup (vVERSION_PLACEHOLDER)
 
 ---
 
-## What Just Happened (Last 1–2 Sessions)
+## What Just Happened (Last 1-2 Sessions Only)
 
-**Session 1 (DATE_PLACEHOLDER) — Mode: admin**
-- Research project initialized with engram protocol
-- Infrastructure files created
+**Initialization (DATE_SHORT_PLACEHOLDER):**
+- Project infrastructure created (Masterclass Architecture vVERSION_PLACEHOLDER)
+- No brainstorming sessions yet
 
 ---
 
 ## Active Threads
 
-- Literature review and background research
-- Research question refinement
+*No active threads yet. Start a brainstorming session to populate this section.*
 
 ---
 
 ## Current Priorities
 
-1. Define research questions and hypotheses
-2. Identify key literature and prior work
-3. Establish methodology
+*No priorities yet.*
 
 ---
 
 ## Blockers
 
-(None)
+*None.*
 
 ---
 
 ## Key Context for Any Agent
 
-- Project: PROJECT_NAME_PLACEHOLDER
-- Researcher: AUTHOR_NAME_PLACEHOLDER
-- Type: Research project
-- Infrastructure: Engram Protocol v4.0
+- AUTHOR_PLACEHOLDER is the primary author. Claude is computational analyst and brainstorm partner.
+- All brainstorm outputs are .md format.
+- The ENGRAM-LOG.md is append-only and verbatim. Never edit past entries.
+- Always read STATE.md at session start. Update it at session end or checkpoint.
+- **Size discipline:** Keep this file under ~100 lines. If it's growing, prune old session summaries and resolved items.
+
+---
+
+## Log Rotation
+
+Rotate ENGRAM-LOG.md when the file exceeds ~50KB or 15 sessions, whichever comes first. To rotate:
+1. Rename current log: `ENGRAM-LOG-NNN.md` (e.g., ENGRAM-LOG-001.md)
+2. Create a fresh ENGRAM-LOG.md
+3. ENGRAM.md carries forward (it's the persistent summary)
+4. Note the rotation in this file
 
 ---
 
 ## Session Counter
 
-**Total Sessions:** 1
-**Last Session:** Session 1 (DATE_PLACEHOLDER)
-**Next Reconciliation:** Due at Session 5
+*The canonical session number is the Session N heading in ENGRAM-LOG.md. This counter is maintained by the agent at checkpoints and end-of-session to stay in sync.*
+
+**Total sessions:** 0
+**Last session:** None
+**Next reconciliation due:** Session 5
